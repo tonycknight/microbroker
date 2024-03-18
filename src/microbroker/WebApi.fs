@@ -39,10 +39,8 @@ module WebApi =
                     let! q = qp ctx |> q queueId
 
                     let msg =
-                        if msg.id = Guid.Empty then
-                            { msg with id = Guid.NewGuid() }
-                        else
-                            msg
+                        { msg with
+                            created = DateTimeOffset.UtcNow }
 
                     do! q.PushAsync msg
                     return! Successful.OK "" next ctx

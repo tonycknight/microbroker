@@ -4,12 +4,10 @@ open System
 
 [<CLIMutable>]
 type QueueMessage =
-    { id: Guid
-      priority: decimal
+    { priority: decimal
       messageType: string
       content: string
-      created: DateTimeOffset
-      ttl: DateTimeOffset option }
+      created: DateTimeOffset }
 
 [<CLIMutable>]
 type QueueInfo = { name: string; count: int64 }

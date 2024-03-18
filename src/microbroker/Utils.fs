@@ -12,6 +12,9 @@ module Strings =
     let (|NullOrWhitespace|_|) value =
         if String.IsNullOrWhiteSpace value then Some value else None
 
+    let defaultIf (comparand: string) (defaultValue: string) (value: string) =
+        if value = comparand then defaultValue else value
+
 module Option =
     let nullToOption (value: obj) =
         if value = null then None else Some value

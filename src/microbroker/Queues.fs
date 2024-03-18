@@ -2,6 +2,7 @@
 
 open System
 open System.Threading.Tasks
+open Microsoft.Extensions.Logging
 
 type IQueue =
     abstract member GetNextAsync: unit -> Task<QueueMessage option>
@@ -10,6 +11,20 @@ type IQueue =
 
 type IQueueFactory =
     abstract member CreateQueue: name: string -> IQueue
+
+[<CLIMutable>]
+type QueueMessageData =
+    { _id: MongoDB.Bson.ObjectId
+      priority: decimal
+      messageType: string
+      content: string
+      created: DateTimeOffset }
+
+    static member toQueueMessage(data: QueueMessageData) =
+        { QueueMessage.priority = data.priority
+          messageType = data.messageType
+          content = data.content
+          created = data.created }
 
 type MemoryQueue(name: string) =
 
@@ -33,20 +48,42 @@ type MemoryQueue(name: string) =
 
         member this.PushAsync message = task { queue.Enqueue message }
 
-type MongoQueue(config: AppConfiguration, name) =
+type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
+    [<Literal>]
+    let defaultQueueName = "default"
+
+    [<Literal>]
+    let queueNamePrefix = $"queue__"
+
+    let name = name |> Strings.defaultIf "" defaultQueueName
+
+    let collectionName = $"{queueNamePrefix}{name}"
+    let logger = logFactory.CreateLogger<MongoQueue>()
+
+    let mongoCol =
+        Mongo.initCollection "" config.mongoDbName collectionName config.mongoConnection
+
     interface IQueue with
         member this.GetInfoAsync() =
             task {
-                return { QueueInfo.name = name; count = 0 }
+                let! count = Mongo.estimatedCount mongoCol
+                return { QueueInfo.name = name; count = count }
             }
 
-        member this.GetNextAsync() = task { return None }
+        member this.GetNextAsync() =
+            task {
+                let! data = Mongo.pullSingletonFromQueue<QueueMessageData> mongoCol
 
-        member this.PushAsync message = task { ignore 0 }
+                return data |> Option.map QueueMessageData.toQueueMessage
+            }
 
-type QueueFactory(config: AppConfiguration) =
+        member this.PushAsync message =
+            task { do! [ message ] |> Mongo.pushToQueue mongoCol }
+
+type QueueFactory(config: AppConfiguration, logFactory: ILoggerFactory) =
     interface IQueueFactory with
-        member this.CreateQueue(name: string) = new MemoryQueue(name)
+        member this.CreateQueue(name: string) =
+            new MongoQueue(config, logFactory, name)
 
 type IQueueProvider =
     // TODO: return names only? because the counts, with large numbers of queues, will cause spammed DB requests
