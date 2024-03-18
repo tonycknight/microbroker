@@ -9,15 +9,11 @@ open Microsoft.Extensions.Logging
 open Microsoft.Extensions.DependencyInjection
 
 type Startup() =
-    
-    member _.ConfigureServices(services: IServiceCollection) =
-        services
-        |> ApiStartup.addApi
-        |> ignore
+
+    member _.ConfigureServices(services: IServiceCollection) = services |> ApiStartup.addApi |> ignore
 
     member _.Configure (app: IApplicationBuilder) (env: IHostEnvironment) (loggerFactory: ILoggerFactory) =
-        app.UseHttpLogging()
-           .UseGiraffe(ApiRoutes.webApp app.ApplicationServices)
+        app.UseHttpLogging().UseGiraffe(ApiRoutes.webApp app.ApplicationServices)
 
 module Program =
     [<EntryPoint>]
@@ -37,4 +33,3 @@ module Program =
         host.Run()
 
         0 // Exit code
-

@@ -10,10 +10,11 @@ type AppConfiguration =
       mongoDbName: string
       mongoConnection: string }
 
-module Configuration = 
+module Configuration =
     let create (sp: System.IServiceProvider) =
-        let config = 
+        let config =
             sp
                 .GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>()
                 .Get<AppConfiguration>()
+
         config

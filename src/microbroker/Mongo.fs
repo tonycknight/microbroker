@@ -6,7 +6,7 @@ open MongoDB.Driver
 open MongoDB.Bson.Serialization
 
 module MongoBson =
-    
+
     let objectId () = ObjectId.GenerateNewId()
 
     let ofJson (json: string) =

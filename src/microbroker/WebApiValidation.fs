@@ -4,7 +4,7 @@ open System
 open Giraffe
 open Microsoft.AspNetCore.Http
 
-module WebApiValidation=
+module WebApiValidation =
     let getRequest<'a> (ctx: HttpContext) =
         task {
             if
@@ -25,4 +25,3 @@ module WebApiValidation=
                 with ex ->
                     return Choice1Of2 { ApiErrorResult.errors = [| "Invalid request" |] }
         }
-

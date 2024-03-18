@@ -9,14 +9,10 @@ type QueueMessage =
       messageType: string
       content: string
       created: DateTimeOffset
-      ttl: DateTimeOffset option
-    }
+      ttl: DateTimeOffset option }
 
 [<CLIMutable>]
-type QueueInfo =
-    { name: string
-      count: int64
-    }
+type QueueInfo = { name: string; count: int64 }
 
 
 [<CLIMutable>]

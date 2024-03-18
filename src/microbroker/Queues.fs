@@ -33,7 +33,18 @@ type MemoryQueue(name: string) =
 
         member this.PushAsync message = task { queue.Enqueue message }
 
-type QueueFactory() =
+type MongoQueue(config: AppConfiguration, name) =
+    interface IQueue with
+        member this.GetInfoAsync() =
+            task {
+                return { QueueInfo.name = name; count = 0 }
+            }
+
+        member this.GetNextAsync() = task { return None }
+
+        member this.PushAsync message = task { ignore 0 }
+
+type QueueFactory(config: AppConfiguration) =
     interface IQueueFactory with
         member this.CreateQueue(name: string) = new MemoryQueue(name)
 

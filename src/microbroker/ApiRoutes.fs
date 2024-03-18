@@ -19,18 +19,11 @@ module ApiRoutes =
 
     let webApp (sp: IServiceProvider) =
         choose
-                [ favicon
-                  GET
-                  >=> ResponseCaching.noResponseCaching
-                  >=> choose
-                        [  
-                            heartbeat
-                            routeCif "/queues/%s/" (fun id -> WebApi.getMessage id)
-                            routeCi "/queues/" >=> WebApi.getQueues
-                        ] 
-                  POST
-                  >=> choose 
-                        [
-                            routeCif "/queues/%s/" (fun id -> WebApi.postMessage id)                            
-                        ]
-                ]
+            [ favicon
+              GET
+              >=> ResponseCaching.noResponseCaching
+              >=> choose
+                      [ heartbeat
+                        routeCif "/queues/%s/" (fun id -> WebApi.getMessage id)
+                        routeCi "/queues/" >=> WebApi.getQueues ]
+              POST >=> choose [ routeCif "/queues/%s/" (fun id -> WebApi.postMessage id) ] ]

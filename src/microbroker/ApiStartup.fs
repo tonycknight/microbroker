@@ -6,7 +6,7 @@ open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Logging
 
-module ApiStartup = 
+module ApiStartup =
     open Microsoft.AspNetCore.HttpLogging
 
     let addApiLogging (services: IServiceCollection) =
@@ -24,35 +24,33 @@ module ApiStartup =
 
                 lo.CombineLogs <- true)
 
-    
+
     let addWebFramework (services: IServiceCollection) = services.AddGiraffe()
 
     let addContentNegotiation (services: IServiceCollection) =
         services.AddSingleton<INegotiationConfig, JsonOnlyNegotiationConfig>()
 
     let addApiServices (services: IServiceCollection) =
-        services.AddSingleton<IQueueFactory, QueueFactory>()
-                .AddSingleton<IQueueProvider, QueueProvider>()
+        services
+            .AddSingleton<IQueueFactory, QueueFactory>()
+            .AddSingleton<IQueueProvider, QueueProvider>()
 
     let addApiConfig (services: IServiceCollection) =
         let sp = services.BuildServiceProvider()
-        
+
         let config = Configuration.create sp
-        
+
         services.AddSingleton<AppConfiguration>(config)
 
     let addApi<'a when 'a :> IServiceCollection> =
-        addApiLogging        
+        addApiLogging
         >> addWebFramework
         >> addApiConfig
         >> addContentNegotiation
         >> addApiServices
 
     let configSource (args: string[]) (whbc: IConfigurationBuilder) =
-        let whbc =
-            whbc
-                .AddEnvironmentVariables("microbroker_")
-                .AddCommandLine(args)
+        let whbc = whbc.AddEnvironmentVariables("microbroker_").AddCommandLine(args)
 
         let configPath =
             args
