@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="paket.references" />
+    <Compile Include="Utils.fs" />
+    <Compile Include="Models.fs" />
+    <Compile Include="Mongo.fs" />
+    <Compile Include="Configuration.fs" />
+    <Compile Include="Queues.fs" />
+    <Compile Include="ApiStartup.fs" />
+    <Compile Include="WebApiValidation.fs" />
+    <Compile Include="WebApi.fs" />
+    <Compile Include="ApiRoutes.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>
