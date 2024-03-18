@@ -24,9 +24,11 @@ module WebApi =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
                 let! q = qp ctx |> q queueId
-
+                
                 match! q.GetNextAsync() with
-                | None -> return! RequestErrors.NOT_FOUND "" next ctx
+                | None -> 
+                    ctx.SetStatusCode StatusCodes.Status404NotFound
+                    return! next ctx
                 | Some msg -> return! Successful.OK msg next ctx
             }
 
@@ -43,5 +45,5 @@ module WebApi =
                             created = DateTimeOffset.UtcNow }
 
                     do! q.PushAsync msg
-                    return! Successful.OK "" next ctx
+                    return! Successful.NO_CONTENT next ctx
             }
