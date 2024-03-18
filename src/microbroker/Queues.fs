@@ -34,7 +34,7 @@ module MongoQueues =
     let queueNamePrefix = "queue__"
 
 type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
-    
+
 
     let name = name |> Strings.defaultIf "" MongoQueues.defaultQueueName
 
@@ -72,14 +72,18 @@ type IQueueProvider =
 
 type MongoQueueProvider(config: AppConfiguration, queueFactory: IQueueFactory) =
 
-    let queueColNames () =        
+    let queueColNames () =
         Mongo.findCollectionNames config.mongoDbName config.mongoConnection
-            |> Array.filter (fun n -> n.StartsWith(MongoQueues.queueNamePrefix))
-            |> Array.map (fun n -> n.Substring(MongoQueues.queueNamePrefix.Length))
+        |> Array.filter (fun n -> n.StartsWith(MongoQueues.queueNamePrefix))
+        |> Array.map (fun n -> n.Substring(MongoQueues.queueNamePrefix.Length))
 
     let queues =
-        let result = new System.Collections.Concurrent.ConcurrentDictionary<string, IQueue>(StringComparer.OrdinalIgnoreCase)        
-        queueColNames () |> Array.iter (fun n -> result.GetOrAdd(n, queueFactory.CreateQueue) |> ignore)
+        let result =
+            new System.Collections.Concurrent.ConcurrentDictionary<string, IQueue>(StringComparer.OrdinalIgnoreCase)
+
+        queueColNames ()
+        |> Array.iter (fun n -> result.GetOrAdd(n, queueFactory.CreateQueue) |> ignore)
+
         result
 
     let getQueue queueName =

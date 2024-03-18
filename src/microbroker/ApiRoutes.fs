@@ -2,7 +2,6 @@
 
 open System
 open Giraffe
-open Microsoft.AspNetCore.Http
 
 module ApiRoutes =
     let private favicon =
