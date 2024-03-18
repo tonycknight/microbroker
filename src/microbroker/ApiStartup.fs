@@ -32,8 +32,8 @@ module ApiStartup =
 
     let addApiServices (services: IServiceCollection) =
         services
-            .AddSingleton<IQueueFactory, QueueFactory>()
-            .AddSingleton<IQueueProvider, QueueProvider>()
+            .AddSingleton<IQueueFactory, MongoQueueFactory>()
+            .AddSingleton<IQueueProvider, MongoQueueProvider>()
 
     let addApiConfig (services: IServiceCollection) =
         let sp = services.BuildServiceProvider()

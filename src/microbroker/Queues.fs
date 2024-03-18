@@ -26,38 +26,19 @@ type QueueMessageData =
           content = data.content
           created = data.created }
 
-type MemoryQueue(name: string) =
-
-    let queue = new System.Collections.Concurrent.ConcurrentQueue<QueueMessage>()
-
-    interface IQueue with
-        member this.GetInfoAsync() =
-            task {
-                return
-                    { QueueInfo.name = name
-                      count = queue.Count }
-            }
-
-        member this.GetNextAsync() =
-            task {
-                return
-                    match queue.TryDequeue() with
-                    | true, msg -> Some msg
-                    | false, _ -> None
-            }
-
-        member this.PushAsync message = task { queue.Enqueue message }
-
-type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
+module MongoQueues =
     [<Literal>]
     let defaultQueueName = "default"
 
     [<Literal>]
-    let queueNamePrefix = $"queue__"
+    let queueNamePrefix = "queue__"
 
-    let name = name |> Strings.defaultIf "" defaultQueueName
+type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
+    
 
-    let collectionName = $"{queueNamePrefix}{name}"
+    let name = name |> Strings.defaultIf "" MongoQueues.defaultQueueName
+
+    let collectionName = $"{MongoQueues.queueNamePrefix}{name}"
     let logger = logFactory.CreateLogger<MongoQueue>()
 
     let mongoCol =
@@ -80,20 +61,26 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
         member this.PushAsync message =
             task { do! [ message ] |> Mongo.pushToQueue mongoCol }
 
-type QueueFactory(config: AppConfiguration, logFactory: ILoggerFactory) =
+type MongoQueueFactory(config: AppConfiguration, logFactory: ILoggerFactory) =
     interface IQueueFactory with
         member this.CreateQueue(name: string) =
             new MongoQueue(config, logFactory, name)
 
 type IQueueProvider =
-    // TODO: return names only? because the counts, with large numbers of queues, will cause spammed DB requests
     abstract member GetQueuesAsync: unit -> Task<QueueInfo[]>
     abstract member GetQueueAsync: queueName: string -> Task<IQueue>
 
-type QueueProvider(queueFactory: IQueueFactory) =
+type MongoQueueProvider(config: AppConfiguration, queueFactory: IQueueFactory) =
+
+    let queueColNames () =        
+        Mongo.findCollectionNames config.mongoDbName config.mongoConnection
+            |> Array.filter (fun n -> n.StartsWith(MongoQueues.queueNamePrefix))
+            |> Array.map (fun n -> n.Substring(MongoQueues.queueNamePrefix.Length))
 
     let queues =
-        new System.Collections.Concurrent.ConcurrentDictionary<string, IQueue>(StringComparer.OrdinalIgnoreCase)
+        let result = new System.Collections.Concurrent.ConcurrentDictionary<string, IQueue>(StringComparer.OrdinalIgnoreCase)        
+        queueColNames () |> Array.iter (fun n -> result.GetOrAdd(n, queueFactory.CreateQueue) |> ignore)
+        result
 
     let getQueue queueName =
         queues.GetOrAdd(queueName, queueFactory.CreateQueue)
@@ -101,10 +88,12 @@ type QueueProvider(queueFactory: IQueueFactory) =
     interface IQueueProvider with
         member this.GetQueuesAsync() =
             task {
-                let qis =
+                let fetches =
                     queues.Values |> Array.ofSeq |> Array.Parallel.map (fun q -> q.GetInfoAsync())
 
-                return! Task.WhenAll qis
+                let! qs = Task.WhenAll fetches
+
+                return qs |> Array.sortBy (fun q -> q.name)
             }
 
         member this.GetQueueAsync(queueName) = task { return getQueue queueName }
