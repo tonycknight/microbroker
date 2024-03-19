@@ -3,6 +3,11 @@ name: Pull Request Labeling
 on:
   pull_request:
     
+permissions:
+  checks: write
+  pull-requests: write
+  contents: read
+  
 jobs:  
   size-label:
     name: Set change size
