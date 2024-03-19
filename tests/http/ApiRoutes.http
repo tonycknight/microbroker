@@ -24,7 +24,6 @@ content-type: application/json
 
 { 
     "content": "just a test",
-    "messageType": "very ordinary",
-    "priority": 1
+    "messageType": "very ordinary"
 }
 
