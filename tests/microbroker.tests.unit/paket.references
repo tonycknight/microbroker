@@ -1,0 +1,9 @@
+group Tests
+FSharp.Core
+xunit
+xunit.runner.visualstudio
+Microsoft.NET.Test.Sdk
+FsCheck.XUnit
+coverlet.msbuild
+coverlet.collector
+nsubstitute
