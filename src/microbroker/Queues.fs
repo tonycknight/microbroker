@@ -16,14 +16,12 @@ type IQueueFactory =
 [<CLIMutable>]
 type QueueMessageData =
     { _id: MongoDB.Bson.ObjectId
-      priority: decimal
       messageType: string
       content: string
       created: DateTimeOffset }
 
     static member toQueueMessage(data: QueueMessageData) =
-        { QueueMessage.priority = data.priority
-          messageType = data.messageType
+        { QueueMessage.messageType = data.messageType
           content = data.content
           created = data.created }
 

@@ -4,8 +4,7 @@ open System
 
 [<CLIMutable>]
 type QueueMessage =
-    { priority: decimal
-      messageType: string
+    { messageType: string
       content: string
       created: DateTimeOffset }
 
