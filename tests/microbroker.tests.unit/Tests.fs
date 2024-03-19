@@ -1,8 +1,11 @@
-module Tests
+namespace microbroker.tests.unit
+
 
 open System
 open Xunit
 
-[<Fact>]
-let ``My test`` () =
-    Assert.True(true)
+module Tests =
+
+    [<Fact>]
+    let ``My test`` () =
+        Assert.True(true)
