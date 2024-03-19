@@ -1,0 +1,30 @@
+### Get queues
+GET http://localhost:8080/queues/
+Accept: application/json
+Accept-Encoding: gzip
+
+### Get queue
+GET http://localhost:8080/queues/aaa/
+Accept: application/json
+Accept-Encoding: gzip
+
+### Delete queue
+DELETE http://localhost:8080/queues/aaa/
+Accept: application/json
+Accept-Encoding: gzip
+
+### Get message from queue
+GET http://localhost:8080/queues/aaa/message/
+Accept: application/json
+Accept-Encoding: gzip
+
+### Post message to queue
+POST http://localhost:8080/queues/aaa/message/
+content-type: application/json
+
+{ 
+    "content": "just a test",
+    "messageType": "very ordinary",
+    "priority": 1
+}
+
