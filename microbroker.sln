@@ -9,7 +9,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{A2F69060-378
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{D9BD7922-B42C-4341-9060-A609953866BA}"
 	ProjectSection(SolutionItems) = preProject
+		.github\workflows\build.yml = .github\workflows\build.yml
 		paket.dependencies = paket.dependencies
+		.github\workflows\pr-checks.yml = .github\workflows\pr-checks.yml
+		.github\workflows\sca.yml = .github\workflows\sca.yml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{CB649669-0E0F-4CBD-938A-5ADBD984B0E3}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
 	EndProjectSection
 EndProject
 Global
