@@ -61,10 +61,8 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
         member this.PushAsync message =
             task { do! [ message ] |> Mongo.pushToQueue mongoCol }
 
-        member this.DeleteAsync () =
-            task { 
-                Mongo.deleteCollection mongoCol
-            }
+        member this.DeleteAsync() =
+            task { Mongo.deleteCollection mongoCol }
 
 type MongoQueueFactory(config: AppConfiguration, logFactory: ILoggerFactory) =
     interface IQueueFactory with
@@ -95,16 +93,16 @@ type MongoQueueProvider(config: AppConfiguration, queueFactory: IQueueFactory) =
     let getQueue queueName =
         queues.GetOrAdd(queueName, queueFactory.CreateQueue)
 
-    let deleteQueue queueName =        
+    let deleteQueue queueName =
         match queues.TryGetValue(queueName) with
         | (true, q) ->
             task {
-                do! q.DeleteAsync ()
+                do! q.DeleteAsync()
                 queues.TryRemove(queueName) |> ignore
                 return true
             }
         | (false, _) -> task { return false }
-        
+
 
     interface IQueueProvider with
         member this.GetQueuesAsync() =

@@ -20,6 +20,16 @@ module WebApi =
                 return! Successful.ok (qs |> Array.sortBy _.name |> json) next ctx
             }
 
+    let getQueueInfo name =
+        fun (next: HttpFunc) (ctx: HttpContext) ->
+            task {
+                let! q = queueProvider ctx |> queue name
+
+                let! info = q.GetInfoAsync()
+
+                return! Successful.ok (info |> json) next ctx
+            }
+
     let getMessage (queueId: string) =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
