@@ -20,6 +20,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{CB649669-0
 		README.md = README.md
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{543E4127-DC54-49F4-8418-E74C45203726}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "microbroker.tests.unit", "tests\microbroker.tests.unit\microbroker.tests.unit.fsproj", "{AF9681B0-4065-4305-B762-65D70D787B3A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,12 +34,17 @@ Global
 		{F4CB982D-4A69-45E8-80FF-D95B969FB7A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F4CB982D-4A69-45E8-80FF-D95B969FB7A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F4CB982D-4A69-45E8-80FF-D95B969FB7A5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AF9681B0-4065-4305-B762-65D70D787B3A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AF9681B0-4065-4305-B762-65D70D787B3A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AF9681B0-4065-4305-B762-65D70D787B3A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AF9681B0-4065-4305-B762-65D70D787B3A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{F4CB982D-4A69-45E8-80FF-D95B969FB7A5} = {A2F69060-3787-4D7E-9AE3-80FEB5781A36}
+		{AF9681B0-4065-4305-B762-65D70D787B3A} = {543E4127-DC54-49F4-8418-E74C45203726}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {12BB7038-534F-44A1-B33A-E50506C59B81}
