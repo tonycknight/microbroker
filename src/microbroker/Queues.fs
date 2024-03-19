@@ -8,6 +8,7 @@ type IQueue =
     abstract member GetNextAsync: unit -> Task<QueueMessage option>
     abstract member PushAsync: message: QueueMessage -> Task
     abstract member GetInfoAsync: unit -> Task<QueueInfo>
+    abstract member DeleteAsync: unit -> Task
 
 type IQueueFactory =
     abstract member CreateQueue: name: string -> IQueue
@@ -35,7 +36,6 @@ module MongoQueues =
 
 type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
 
-
     let name = name |> Strings.defaultIf "" MongoQueues.defaultQueueName
 
     let collectionName = $"{MongoQueues.queueNamePrefix}{name}"
@@ -61,6 +61,11 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
         member this.PushAsync message =
             task { do! [ message ] |> Mongo.pushToQueue mongoCol }
 
+        member this.DeleteAsync () =
+            task { 
+                Mongo.deleteCollection mongoCol
+            }
+
 type MongoQueueFactory(config: AppConfiguration, logFactory: ILoggerFactory) =
     interface IQueueFactory with
         member this.CreateQueue(name: string) =
@@ -69,6 +74,7 @@ type MongoQueueFactory(config: AppConfiguration, logFactory: ILoggerFactory) =
 type IQueueProvider =
     abstract member GetQueuesAsync: unit -> Task<QueueInfo[]>
     abstract member GetQueueAsync: queueName: string -> Task<IQueue>
+    abstract member DeleteQueueAsync: queueName: string -> Task<bool>
 
 type MongoQueueProvider(config: AppConfiguration, queueFactory: IQueueFactory) =
 
@@ -89,6 +95,17 @@ type MongoQueueProvider(config: AppConfiguration, queueFactory: IQueueFactory) =
     let getQueue queueName =
         queues.GetOrAdd(queueName, queueFactory.CreateQueue)
 
+    let deleteQueue queueName =        
+        match queues.TryGetValue(queueName) with
+        | (true, q) ->
+            task {
+                do! q.DeleteAsync ()
+                queues.TryRemove(queueName) |> ignore
+                return true
+            }
+        | (false, _) -> task { return false }
+        
+
     interface IQueueProvider with
         member this.GetQueuesAsync() =
             task {
@@ -101,3 +118,5 @@ type MongoQueueProvider(config: AppConfiguration, queueFactory: IQueueFactory) =
             }
 
         member this.GetQueueAsync(queueName) = task { return getQueue queueName }
+
+        member this.DeleteQueueAsync(queueName) = deleteQueue queueName

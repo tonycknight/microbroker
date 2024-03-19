@@ -78,6 +78,11 @@ module Mongo =
 
         if indexPath <> "" then col |> setIndex indexPath else col
 
+    let deleteCollection (collection: IMongoCollection<BsonDocument>) =
+        let db = collection.Database
+        let name = collection.CollectionNamespace.CollectionName
+        db.DropCollection(name)
+
     let findCollectionNames dbName connectionString =
         use colNames =
             connectionString

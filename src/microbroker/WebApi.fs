@@ -6,16 +6,16 @@ open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.DependencyInjection
 
 module WebApi =
-    let qp (ctx: HttpContext) =
+    let queueProvider (ctx: HttpContext) =
         ctx.RequestServices.GetRequiredService<IQueueProvider>()
 
-    let q (name: string) (queueProvider: IQueueProvider) = queueProvider.GetQueueAsync name
+    let queue (name: string) (queueProvider: IQueueProvider) = queueProvider.GetQueueAsync name
 
     let getQueues =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
-                let qs = qp ctx
-                let! qs = qs.GetQueuesAsync()
+                let qp = queueProvider ctx
+                let! qs = qp.GetQueuesAsync()
 
                 return! Successful.ok (qs |> Array.sortBy _.name |> json) next ctx
             }
@@ -23,7 +23,7 @@ module WebApi =
     let getMessage (queueId: string) =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
-                let! q = qp ctx |> q queueId
+                let! q = queueProvider ctx |> queue queueId
 
                 match! q.GetNextAsync() with
                 | None ->
@@ -38,7 +38,7 @@ module WebApi =
                 match! WebApiValidation.getRequest<QueueMessage> ctx with
                 | Choice1Of2 error -> return! RequestErrors.BAD_REQUEST error next ctx
                 | Choice2Of2 msg ->
-                    let! q = qp ctx |> q queueId
+                    let! q = queueProvider ctx |> queue queueId
 
                     let msg =
                         { msg with
@@ -46,4 +46,19 @@ module WebApi =
 
                     do! q.PushAsync msg
                     return! Successful.NO_CONTENT next ctx
+            }
+
+    let deleteQueue (queueId: string) =
+        fun (next: HttpFunc) (ctx: HttpContext) ->
+            task {
+                let qp = queueProvider ctx
+
+                let! r = qp.DeleteQueueAsync queueId
+
+                return!
+                    if r then
+                        Successful.NO_CONTENT next ctx
+                    else
+                        ctx.SetStatusCode StatusCodes.Status404NotFound
+                        next ctx
             }
