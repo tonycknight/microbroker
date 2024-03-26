@@ -13,6 +13,10 @@ on:
   schedule:
     - cron: '1 0 * * *'
 
+permissions:
+  checks: write
+  contents: read
+
 jobs:
   sca:
     name: Scheduled SCA
