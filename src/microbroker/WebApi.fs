@@ -58,6 +58,35 @@ module WebApi =
                     return! Successful.NO_CONTENT next ctx
             }
 
+    let postMessages (queueId: string) =
+        fun (next: HttpFunc) (ctx: HttpContext) ->
+            let rec loop (q: IQueue) msgs =
+                task {
+                    match msgs with
+                    | [] -> return ignore 0
+                    | h :: ms ->
+                        do! q.PushAsync h
+                        return! loop q ms
+                }
+
+            task {
+                match! WebApiValidation.getRequest<QueueMessage[]> ctx with
+                | Choice1Of2 error -> return! RequestErrors.BAD_REQUEST error next ctx
+                | Choice2Of2 msgs ->
+                    let! q = queueProvider ctx |> queue queueId
+
+                    let msgs =
+                        msgs
+                        |> Seq.map (fun m ->
+                            { m with
+                                created = DateTimeOffset.UtcNow })
+                        |> List.ofSeq
+
+                    do! loop q msgs
+
+                    return! Successful.NO_CONTENT next ctx
+            }
+
     let deleteQueue (queueId: string) =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
