@@ -19,14 +19,13 @@ type QueueMessageData =
       messageType: string
       content: string
       created: DateTimeOffset
-      active: DateTimeOffset}
+      active: DateTimeOffset }
 
     static member toQueueMessage(data: QueueMessageData) =
         { QueueMessage.messageType = data.messageType
           content = data.content
           created = data.created
-          active = data.active
-          }
+          active = data.active }
 
 module MongoQueues =
     [<Literal>]
@@ -46,46 +45,54 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
     let ttaQueueCollectionName = $"{MongoQueues.ttaQueueNamePrefix}{name}"
     let log = logFactory.CreateLogger<MongoQueue>()
 
-    let activeQueueMongoCol = Mongo.initCollection "" config.mongoDbName activeQueueCollectionName config.mongoConnection
-    let ttaQueueMongoCol = Mongo.initCollection "active" config.mongoDbName ttaQueueCollectionName config.mongoConnection
-        
+    let activeQueueMongoCol =
+        Mongo.initCollection "" config.mongoDbName activeQueueCollectionName config.mongoConnection
+
+    let ttaQueueMongoCol =
+        Mongo.initCollection "active" config.mongoDbName ttaQueueCollectionName config.mongoConnection
+
     let moveTtaMessagesToActive () =
-        task {            
+        task {
             let cutOff = DateTimeOffset.UtcNow
             let! msgs = cutOff |> Mongo.pullFromTta<QueueMessageData> ttaQueueMongoCol
             let mutable totalMoved = 0L
+
             for batch in msgs |> Seq.chunkBySize 100 do
-                
-                do! batch 
-                    |> Seq.map (fun m -> { m with _id = new MongoDB.Bson.ObjectId(Guid.NewGuid().ToString().Replace("-", "") ) })
+
+                do!
+                    batch
+                    |> Seq.map (fun m ->
+                        { m with
+                            _id = new MongoDB.Bson.ObjectId(Guid.NewGuid().ToString().Replace("-", "")) })
                     |> Mongo.pushToQueue activeQueueMongoCol
-                
+
                 let ids = batch |> Seq.map (fun m -> $"ObjectId('{m._id}')") |> Strings.join ", "
                 let predicate = ids |> sprintf "{ '_id':  { $in: [%s] } }"
 
                 let! deletions = predicate |> Mongo.deleteFromQueue ttaQueueMongoCol
 
                 totalMoved <- totalMoved + deletions
-            
+
             return totalMoved
         }
-        
-    let createMoveTimer()=
-        let interval = TimeSpan.FromMinutes(1.) 
+
+    let createMoveTimer () =
+        let interval = TimeSpan.FromMinutes(1.)
         let moveTimer = new System.Timers.Timer(interval)
+
         let moveCallback (x) =
             try
                 $"Starting TTA move for queue [{name}]..." |> log.LogInformation
                 let deletions = moveTtaMessagesToActive().Result
                 $"{deletions} messages moved for queue [{name}]." |> log.LogInformation
-            with ex ->  
-                log.LogError (ex, ex.Message)
-        
-        moveTimer.Elapsed.Add moveCallback 
+            with ex ->
+                log.LogError(ex, ex.Message)
+
+        moveTimer.Elapsed.Add moveCallback
         moveTimer
-            
-    let moveTimer = createMoveTimer()
-    do moveTimer.Enabled <- true       
+
+    let moveTimer = createMoveTimer ()
+    do moveTimer.Enabled <- true
     do moveTimer.Start()
 
     interface IQueue with
@@ -102,26 +109,25 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
                 return data |> Option.map QueueMessageData.toQueueMessage
             }
 
-        member this.PushAsync message =            
-            task { 
-                let col = 
-                    if message.active > DateTimeOffset.UtcNow then 
+        member this.PushAsync message =
+            task {
+                let col =
+                    if message.active > DateTimeOffset.UtcNow then
                         ttaQueueMongoCol
                     else
                         activeQueueMongoCol
 
-                do! [ message ] 
-                    |> Mongo.pushToQueue col
-                }
+                do! [ message ] |> Mongo.pushToQueue col
+            }
 
         member this.DeleteAsync() =
-            task { 
+            task {
                 moveTimer.Enabled <- false
                 moveTimer.Stop()
-                Mongo.deleteCollection activeQueueMongoCol 
-                Mongo.deleteCollection ttaQueueMongoCol 
-                moveTimer.Dispose()                
-                }
+                Mongo.deleteCollection activeQueueMongoCol
+                Mongo.deleteCollection ttaQueueMongoCol
+                moveTimer.Dispose()
+            }
 
 type MongoQueueFactory(config: AppConfiguration, logFactory: ILoggerFactory) =
     interface IQueueFactory with
