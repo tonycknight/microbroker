@@ -69,20 +69,23 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
             
             return totalMoved
         }
-
-    let timerWait = TimeSpan.FromSeconds(10.)
-    
-    let moveTimer = new System.Timers.Timer(timerWait)
-    let moveCallback (x) =
-        try
-            $"Starting TTA move for queue [{name}]..." |> log.LogInformation
-            let deletions = moveTtaMessagesToActive().Result
-            $"{deletions} messages moved for queue [{name}]." |> log.LogInformation
-        with ex ->  
-            log.LogError (ex, ex.Message)
-    
-    do moveTimer.Elapsed.Add moveCallback 
-    do moveTimer.Enabled <- true
+        
+    let createMoveTimer()=
+        let interval = TimeSpan.FromMinutes(1.) 
+        let moveTimer = new System.Timers.Timer(interval)
+        let moveCallback (x) =
+            try
+                $"Starting TTA move for queue [{name}]..." |> log.LogInformation
+                let deletions = moveTtaMessagesToActive().Result
+                $"{deletions} messages moved for queue [{name}]." |> log.LogInformation
+            with ex ->  
+                log.LogError (ex, ex.Message)
+        
+        moveTimer.Elapsed.Add moveCallback 
+        moveTimer
+            
+    let moveTimer = createMoveTimer()
+    do moveTimer.Enabled <- true       
     do moveTimer.Start()
 
     interface IQueue with
@@ -113,8 +116,12 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
 
         member this.DeleteAsync() =
             task { 
+                moveTimer.Enabled <- false
+                moveTimer.Stop()
+                moveTimer.Dispose()
                 Mongo.deleteCollection activeQueueMongoCol 
                 Mongo.deleteCollection ttaQueueMongoCol 
+
                 }
 
 type MongoQueueFactory(config: AppConfiguration, logFactory: ILoggerFactory) =
