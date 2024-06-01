@@ -133,3 +133,31 @@ module Mongo =
 
                 do! collection.InsertManyAsync(values, opts)
         }
+
+    let pullFromTta<'a> (collection: IMongoCollection<BsonDocument>) (active: DateTimeOffset)=
+        task {            
+            let active = active.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss+00:00")
+            let filter = 
+                 $"{{ 'active':  {{ $lte: '{active}' }} }}"
+                    |> MongoBson.ofJson
+                    |> FilterDefinition.op_Implicit
+
+            use! r = collection.FindAsync(filter)
+            
+            return 
+                r.ToEnumerable()
+                |> Seq.map MongoBson.toObject<'a>
+                |> Array.ofSeq
+            }
+
+    let deleteFromQueue<'a> (collection: IMongoCollection<BsonDocument>) (predicate: string) =
+        task {
+            let filter = 
+                predicate
+                    |> MongoBson.ofJson
+                    |> FilterDefinition.op_Implicit
+            
+            let! r = collection.DeleteManyAsync filter
+         
+            return r.DeletedCount            
+        }
