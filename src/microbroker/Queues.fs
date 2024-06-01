@@ -42,31 +42,45 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
 
     let name = name |> Strings.defaultIf "" MongoQueues.defaultQueueName
 
-    let collectionName = $"{MongoQueues.queueNamePrefix}{name}"
+    let activeQueueCollectionName = $"{MongoQueues.queueNamePrefix}{name}"
+    let ttaQueueCollectionName = $"{MongoQueues.ttaQueueNamePrefix}{name}"
     let logger = logFactory.CreateLogger<MongoQueue>()
 
-    let mongoCol =
-        Mongo.initCollection "" config.mongoDbName collectionName config.mongoConnection
+    let activeQueueMongoCol = Mongo.initCollection "" config.mongoDbName activeQueueCollectionName config.mongoConnection
+    let ttaQueueMongoCol = Mongo.initCollection "active" config.mongoDbName ttaQueueCollectionName config.mongoConnection
 
     interface IQueue with
         member this.GetInfoAsync() =
             task {
-                let! count = Mongo.estimatedCount mongoCol
+                let! count = Mongo.estimatedCount activeQueueMongoCol
                 return { QueueInfo.name = name; count = count }
             }
 
         member this.GetNextAsync() =
             task {
-                let! data = Mongo.pullSingletonFromQueue<QueueMessageData> mongoCol
+                let! data = Mongo.pullSingletonFromQueue<QueueMessageData> activeQueueMongoCol
 
                 return data |> Option.map QueueMessageData.toQueueMessage
             }
 
         member this.PushAsync message =
-            task { do! [ message ] |> Mongo.pushToQueue mongoCol }
+            
+            task { 
+                let col = 
+                    if message.active > DateTimeOffset.UtcNow then 
+                        ttaQueueMongoCol
+                    else
+                        activeQueueMongoCol
+
+                do! [ message ] 
+                    |> Mongo.pushToQueue col
+                }
 
         member this.DeleteAsync() =
-            task { Mongo.deleteCollection mongoCol }
+            task { 
+                Mongo.deleteCollection activeQueueMongoCol 
+                Mongo.deleteCollection ttaQueueMongoCol 
+                }
 
 type MongoQueueFactory(config: AppConfiguration, logFactory: ILoggerFactory) =
     interface IQueueFactory with
