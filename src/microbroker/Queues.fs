@@ -118,10 +118,9 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
             task { 
                 moveTimer.Enabled <- false
                 moveTimer.Stop()
-                moveTimer.Dispose()
                 Mongo.deleteCollection activeQueueMongoCol 
                 Mongo.deleteCollection ttaQueueMongoCol 
-
+                moveTimer.Dispose()                
                 }
 
 type MongoQueueFactory(config: AppConfiguration, logFactory: ILoggerFactory) =
