@@ -18,12 +18,15 @@ type QueueMessageData =
     { _id: MongoDB.Bson.ObjectId
       messageType: string
       content: string
-      created: DateTimeOffset }
+      created: DateTimeOffset
+      active: DateTimeOffset}
 
     static member toQueueMessage(data: QueueMessageData) =
         { QueueMessage.messageType = data.messageType
           content = data.content
-          created = data.created }
+          created = data.created
+          active = data.active
+          }
 
 module MongoQueues =
     [<Literal>]
@@ -31,6 +34,9 @@ module MongoQueues =
 
     [<Literal>]
     let queueNamePrefix = "queue__"
+
+    [<Literal>]
+    let ttaQueueNamePrefix = "ttaqueue__"
 
 type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
 
