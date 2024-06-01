@@ -27,5 +27,7 @@ module ApiRoutes =
                         routeCif "/queues/%s/message/" (fun id -> WebApi.getMessage id)
                         routeCi "/queues/" >=> WebApi.getQueues ]
               POST
-              >=> choose [ routeCif "/queues/%s/message/" (fun id -> WebApi.postMessage id) ]
+              >=> choose
+                      [ routeCif "/queues/%s/message/" (fun id -> WebApi.postMessage id)
+                        routeCif "/queues/%s/messages/" (fun id -> WebApi.postMessages id) ]
               DELETE >=> choose [ routeCif "/queues/%s/" (fun id -> WebApi.deleteQueue id) ] ]
