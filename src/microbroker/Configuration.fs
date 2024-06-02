@@ -9,8 +9,11 @@ type AppConfiguration =
     { hostUrls: string
       mongoDbName: string
       mongoConnection: string }
+
     static member defaultConfig =
-        { AppConfiguration.hostUrls = "http://+:8080"; mongoDbName = ""; mongoConnection = "" }
+        { AppConfiguration.hostUrls = "http://+:8080"
+          mongoDbName = ""
+          mongoConnection = "" }
 
 module Configuration =
     let create (sp: System.IServiceProvider) =
