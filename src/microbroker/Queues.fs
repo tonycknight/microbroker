@@ -100,7 +100,11 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
             task {
                 let! activeCount = Mongo.estimatedCount activeQueueMongoCol
                 let! ttaCount = Mongo.estimatedCount ttaQueueMongoCol
-                return { QueueInfo.name = name; count = activeCount; futureCount = ttaCount}
+
+                return
+                    { QueueInfo.name = name
+                      count = activeCount
+                      futureCount = ttaCount }
             }
 
         member this.GetNextAsync() =
