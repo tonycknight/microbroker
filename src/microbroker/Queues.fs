@@ -82,7 +82,7 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
 
         let moveCallback (x) =
             try
-                $"Starting TTA move for queue [{name}]..." |> log.LogInformation
+                $"Starting TTA move for queue [{name}]..." |> log.LogTrace
                 let deletions = moveTtaMessagesToActive().Result
                 $"{deletions} messages moved for queue [{name}]." |> log.LogInformation
             with ex ->
