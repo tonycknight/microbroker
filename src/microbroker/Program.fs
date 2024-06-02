@@ -16,6 +16,14 @@ type Startup() =
         app.UseHttpLogging().UseGiraffe(ApiRoutes.webApp app.ApplicationServices)
 
 module Program =
+    let hostUrls (config: IConfiguration) =
+        match config[nameof Unchecked.defaultof<AppConfiguration>.hostUrls] with
+        | null -> AppConfiguration.defaultConfig.hostUrls
+        | x -> x
+
+    let config argv =
+        (new ConfigurationBuilder() |> ApiStartup.configSource argv).Build()
+
     [<EntryPoint>]
     let main argv =
         let host =
@@ -25,7 +33,7 @@ module Program =
                     whb
                         .UseStartup<Startup>()
                         .ConfigureAppConfiguration(ApiStartup.configSource argv >> ignore)
-                        .UseUrls("http://+:8080")
+                        .UseUrls(argv |> config |> hostUrls)
                     |> ignore)
 
                 .Build()

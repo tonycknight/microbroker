@@ -37,9 +37,10 @@ module ApiStartup =
 
     let addApiConfig (services: IServiceCollection) =
         let sp = services.BuildServiceProvider()
+        let lf = sp.GetRequiredService<ILoggerFactory>()
 
         let config = Configuration.create sp
-
+        
         services.AddSingleton<AppConfiguration>(config)
 
     let addApi<'a when 'a :> IServiceCollection> =
