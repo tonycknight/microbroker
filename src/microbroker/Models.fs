@@ -10,7 +10,7 @@ type QueueMessage =
       active: DateTimeOffset }
 
 [<CLIMutable>]
-type QueueInfo = { name: string; count: int64 }
+type QueueInfo = { name: string; count: int64; futureCount: int64}
 
 
 [<CLIMutable>]

@@ -98,8 +98,9 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
     interface IQueue with
         member this.GetInfoAsync() =
             task {
-                let! count = Mongo.estimatedCount activeQueueMongoCol
-                return { QueueInfo.name = name; count = count }
+                let! activeCount = Mongo.estimatedCount activeQueueMongoCol
+                let! ttaCount = Mongo.estimatedCount ttaQueueMongoCol
+                return { QueueInfo.name = name; count = activeCount; futureCount = ttaCount}
             }
 
         member this.GetNextAsync() =
