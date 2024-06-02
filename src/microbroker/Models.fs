@@ -6,10 +6,14 @@ open System
 type QueueMessage =
     { messageType: string
       content: string
-      created: DateTimeOffset }
+      created: DateTimeOffset
+      active: DateTimeOffset }
 
 [<CLIMutable>]
-type QueueInfo = { name: string; count: int64 }
+type QueueInfo =
+    { name: string
+      count: int64
+      futureCount: int64 }
 
 
 [<CLIMutable>]

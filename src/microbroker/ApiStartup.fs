@@ -44,13 +44,17 @@ module ApiStartup =
 
     let addApi<'a when 'a :> IServiceCollection> =
         addApiLogging
-        >> addWebFramework
         >> addApiConfig
+        >> addWebFramework
         >> addContentNegotiation
         >> addApiServices
 
     let configSource (args: string[]) (whbc: IConfigurationBuilder) =
-        let whbc = whbc.AddEnvironmentVariables("microbroker_").AddCommandLine(args)
+        let whbc =
+            whbc
+                .AddJsonFile("appsettings.json", true, false)
+                .AddEnvironmentVariables("microbroker_")
+                .AddCommandLine(args)
 
         let configPath =
             args

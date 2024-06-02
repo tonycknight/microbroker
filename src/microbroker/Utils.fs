@@ -15,6 +15,8 @@ module Strings =
     let defaultIf (comparand: string) (defaultValue: string) (value: string) =
         if value = comparand then defaultValue else value
 
+    let join (delim: string) (values: seq<string>) = System.String.Join(delim, values)
+
 module Args =
 
     let getValue prefix (args: seq<string>) =

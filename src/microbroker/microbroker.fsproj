@@ -6,6 +6,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="appsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <None Include="paket.references" />
     <Compile Include="Utils.fs" />
     <Compile Include="Models.fs" />
@@ -18,5 +21,7 @@
     <Compile Include="ApiRoutes.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
+
+  <ItemGroup />
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>
