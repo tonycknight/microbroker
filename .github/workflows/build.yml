@@ -31,23 +31,7 @@ jobs:
       - name: pkgchk
         uses: tonycknight/pkgchk-action@v1.0.15
     
-
-  check-style-rules:
-    runs-on: ubuntu-latest
-    name: Check Style rules
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup .NET Core SDK
-        uses: actions/setup-dotnet@v4                
- 
-      - name: Style checks
-        if: ${{ github.event_name == 'pull_request' }}
-        run: |
-            dotnet tool restore    
-            dotnet fantomas ./ --check
-
-
+  
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -126,7 +110,7 @@ jobs:
   build-publish-docker-image:
     name: Build & Publish docker image
     runs-on: ubuntu-latest
-    needs:   [ build, tests, sca, check-style-rules ]
+    needs:   [ build, tests, sca ]
 
     steps:
       - uses: actions/checkout@v4

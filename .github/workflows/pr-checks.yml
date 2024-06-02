@@ -36,3 +36,17 @@ jobs:
         name: Set label
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
+
+  check-style-rules:
+    runs-on: ubuntu-latest
+    name: Check Style rules
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET Core SDK
+        uses: actions/setup-dotnet@v4                
+  
+      - name: Style checks
+        run: |
+            dotnet tool restore    
+            dotnet fantomas ./ --check
