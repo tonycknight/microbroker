@@ -29,6 +29,6 @@ jobs:
         uses: actions/setup-dotnet@v4
                 
       - name: SCA
-        uses: tonycknight/pkgchk-action@v1.0.15
+        uses: tonycknight/pkgchk-action@v1.0.16
     
     
