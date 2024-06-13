@@ -15,7 +15,7 @@
       ]
     },
     "pkgchk-cli": {
-      "version": "0.2.385",
+      "version": "0.2.388",
       "commands": [
         "pkgchk"
       ]
