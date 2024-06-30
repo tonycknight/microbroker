@@ -47,6 +47,12 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
     let ttaQueueCollectionName = $"{MongoQueues.ttaQueueNamePrefix}{name}"
     let log = logFactory.CreateLogger<MongoQueue>()
 
+    let setExpiry (msg: QueueMessage) =
+        if msg.expiry = DateTimeOffset.MinValue then
+            { msg with expiry = DateTimeOffset.MaxValue }
+        else 
+            msg
+
     let isExpired (msg: QueueMessageData) =
         msg.expiry > DateTimeOffset.MinValue && msg.expiry < DateTimeOffset.UtcNow
 
@@ -134,7 +140,7 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
                     else
                         activeQueueMongoCol
 
-                do! [ message ] |> Mongo.pushToQueue col
+                do! [ setExpiry message ] |> Mongo.pushToQueue col
             }
 
         member this.DeleteAsync() =
