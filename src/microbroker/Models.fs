@@ -7,7 +7,8 @@ type QueueMessage =
     { messageType: string
       content: string
       created: DateTimeOffset
-      active: DateTimeOffset }
+      active: DateTimeOffset
+      expiry: DateTimeOffset }
 
 [<CLIMutable>]
 type QueueInfo =

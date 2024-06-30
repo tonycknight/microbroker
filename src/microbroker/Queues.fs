@@ -19,13 +19,15 @@ type QueueMessageData =
       messageType: string
       content: string
       created: DateTimeOffset
-      active: DateTimeOffset }
+      active: DateTimeOffset
+      expiry: DateTimeOffset }
 
     static member toQueueMessage(data: QueueMessageData) =
         { QueueMessage.messageType = data.messageType
           content = data.content
           created = data.created
-          active = data.active }
+          active = data.active
+          expiry = data.expiry }
 
 module MongoQueues =
     [<Literal>]
@@ -44,6 +46,16 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
     let activeQueueCollectionName = $"{MongoQueues.queueNamePrefix}{name}"
     let ttaQueueCollectionName = $"{MongoQueues.ttaQueueNamePrefix}{name}"
     let log = logFactory.CreateLogger<MongoQueue>()
+
+    let setExpiry (msg: QueueMessage) =
+        if msg.expiry = DateTimeOffset.MinValue then
+            { msg with
+                expiry = DateTimeOffset.MaxValue }
+        else
+            msg
+
+    let isExpired (msg: QueueMessageData) =
+        msg.expiry > DateTimeOffset.MinValue && msg.expiry < DateTimeOffset.UtcNow
 
     let activeQueueMongoCol =
         Mongo.initCollection "" config.mongoDbName activeQueueCollectionName config.mongoConnection
@@ -108,11 +120,18 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
             }
 
         member this.GetNextAsync() =
-            task {
-                let! data = Mongo.pullSingletonFromQueue<QueueMessageData> activeQueueMongoCol
+            let rec getNext () =
+                task {
+                    let! data = Mongo.pullSingletonFromQueue<QueueMessageData> activeQueueMongoCol
 
-                return data |> Option.map QueueMessageData.toQueueMessage
-            }
+                    return!
+                        match data with
+                        | Some d when (isExpired d |> not) -> task { return QueueMessageData.toQueueMessage d |> Some }
+                        | None -> task { return None }
+                        | Some d -> getNext ()
+                }
+
+            getNext ()
 
         member this.PushAsync message =
             task {
@@ -122,7 +141,7 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
                     else
                         activeQueueMongoCol
 
-                do! [ message ] |> Mongo.pushToQueue col
+                do! [ setExpiry message ] |> Mongo.pushToQueue col
             }
 
         member this.DeleteAsync() =
