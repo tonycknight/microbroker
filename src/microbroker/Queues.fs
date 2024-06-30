@@ -49,8 +49,9 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
 
     let setExpiry (msg: QueueMessage) =
         if msg.expiry = DateTimeOffset.MinValue then
-            { msg with expiry = DateTimeOffset.MaxValue }
-        else 
+            { msg with
+                expiry = DateTimeOffset.MaxValue }
+        else
             msg
 
     let isExpired (msg: QueueMessageData) =
