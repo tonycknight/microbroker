@@ -19,13 +19,15 @@ type QueueMessageData =
       messageType: string
       content: string
       created: DateTimeOffset
-      active: DateTimeOffset }
+      active: DateTimeOffset
+      expiry: DateTimeOffset }
 
     static member toQueueMessage(data: QueueMessageData) =
         { QueueMessage.messageType = data.messageType
           content = data.content
           created = data.created
-          active = data.active }
+          active = data.active
+          expiry = data.expiry }
 
 module MongoQueues =
     [<Literal>]
