@@ -47,6 +47,9 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
     let ttaQueueCollectionName = $"{MongoQueues.ttaQueueNamePrefix}{name}"
     let log = logFactory.CreateLogger<MongoQueue>()
 
+    let isExpired (msg: QueueMessageData) =
+        msg.expiry > DateTimeOffset.MinValue && msg.expiry < DateTimeOffset.UtcNow
+
     let activeQueueMongoCol =
         Mongo.initCollection "" config.mongoDbName activeQueueCollectionName config.mongoConnection
 
@@ -110,11 +113,18 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
             }
 
         member this.GetNextAsync() =
-            task {
-                let! data = Mongo.pullSingletonFromQueue<QueueMessageData> activeQueueMongoCol
+            let rec getNext () =
+                task {
+                    let! data = Mongo.pullSingletonFromQueue<QueueMessageData> activeQueueMongoCol
 
-                return data |> Option.map QueueMessageData.toQueueMessage
-            }
+                    return!
+                        match data with
+                        | Some d when (isExpired d |> not) -> task { return QueueMessageData.toQueueMessage d |> Some }
+                        | None -> task { return None }
+                        | Some d -> getNext ()
+                }
+
+            getNext ()
 
         member this.PushAsync message =
             task {
