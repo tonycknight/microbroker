@@ -6,10 +6,29 @@ open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.DependencyInjection
 
 module WebApi =
-    let queueProvider (ctx: HttpContext) =
+    let private queueProvider (ctx: HttpContext) =
         ctx.RequestServices.GetRequiredService<IQueueProvider>()
 
-    let queue (name: string) (queueProvider: IQueueProvider) = queueProvider.GetQueueAsync name
+    let private queue (name: string) (queueProvider: IQueueProvider) = queueProvider.GetQueueAsync name
+
+    let rec private pushToQueues (queues: IQueue list) (msg: QueueMessage) =
+        task {
+            match queues with
+            | [] -> return ignore 0
+            | q :: qs ->
+                do! q.PushAsync msg // TODO: error handling?
+
+                return! pushToQueues qs msg
+        }
+
+    let rec private pushManyToQueues (queues: IQueue list) (msgs: QueueMessage list) =
+        task {
+            match msgs with
+            | [] -> return ignore 0
+            | h :: ms ->
+                do! pushToQueues queues h
+                return! pushManyToQueues queues ms
+        }
 
     let getQueues =
         fun (next: HttpFunc) (ctx: HttpContext) ->
@@ -54,21 +73,13 @@ module WebApi =
                         { msg with
                             created = DateTimeOffset.UtcNow }
 
-                    do! q.PushAsync msg
+                    do! pushManyToQueues [ q ] [ msg ]
+                    
                     return! Successful.NO_CONTENT next ctx
             }
 
     let postMessages (queueId: string) =
-        fun (next: HttpFunc) (ctx: HttpContext) ->
-            let rec loop (q: IQueue) msgs =
-                task {
-                    match msgs with
-                    | [] -> return ignore 0
-                    | h :: ms ->
-                        do! q.PushAsync h
-                        return! loop q ms
-                }
-
+        fun (next: HttpFunc) (ctx: HttpContext) ->            
             task {
                 match! WebApiValidation.getRequest<QueueMessage[]> ctx with
                 | Choice1Of2 error -> return! RequestErrors.BAD_REQUEST error next ctx
@@ -82,8 +93,8 @@ module WebApi =
                                 created = DateTimeOffset.UtcNow })
                         |> List.ofSeq
 
-                    do! loop q msgs
-
+                    do! pushManyToQueues [ q ] msgs
+                    
                     return! Successful.NO_CONTENT next ctx
             }
 
