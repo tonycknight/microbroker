@@ -81,7 +81,8 @@ module WebApi =
                 match! WebApiValidation.getRequest<QueueMessage[]> ctx with
                 | Choice1Of2 error -> return! RequestErrors.BAD_REQUEST error next ctx
                 | Choice2Of2 msgs ->
-                    let! q = queueProvider ctx |> queue queueId
+                    let qp = queueProvider ctx
+                    let! q = qp |> queue queueId
 
                     let msgs =
                         msgs
@@ -90,7 +91,11 @@ module WebApi =
                                 created = DateTimeOffset.UtcNow })
                         |> List.ofSeq
 
-                    do! pushManyToQueues [ q ] msgs
+                    let! linkedQueues = qp.GetLinkedQueues queueId 
+
+                    let queues = q :: linkedQueues
+                    
+                    do! pushManyToQueues queues msgs
 
                     return! Successful.NO_CONTENT next ctx
             }
@@ -103,6 +108,46 @@ module WebApi =
                 let! r = qp.DeleteQueueAsync queueId
 
                 return!
+                    if r then
+                        Successful.NO_CONTENT next ctx
+                    else
+                        ctx.SetStatusCode StatusCodes.Status404NotFound
+                        next ctx
+            }
+
+    let linkQueues (queueId: string, originQueueId: string) =
+        fun (next: HttpFunc) (ctx: HttpContext) ->
+            task {                
+                try
+                    let qp = queueProvider ctx
+                    let! r = qp.LinkQueuesAsync originQueueId queueId
+                    
+                    return! Successful.NO_CONTENT next ctx
+                with 
+                | :? System.ArgumentException as ex ->
+                    return! RequestErrors.BAD_REQUEST [ ex.Message ] next ctx
+            }
+
+    let getQueueWatchers (queueId: string) =
+        fun (next: HttpFunc) (ctx: HttpContext) ->
+            task {
+                let qp = queueProvider ctx
+
+                let! qs = qp.GetLinkedQueues queueId
+                
+                let r = qs |> Seq.map _.Name |> Seq.sortBy id |> Array.ofSeq
+
+                return! Successful.OK r next ctx
+            }
+
+    let deleteQueueWatcher (destinationQueueId: string, originQueueId: string) =
+        fun (next: HttpFunc) (ctx: HttpContext) ->
+            task {
+                let qp = queueProvider ctx
+
+                let! r = qp.DeleteLinkedQueuesAsync originQueueId destinationQueueId
+                
+                return! 
                     if r then
                         Successful.NO_CONTENT next ctx
                     else

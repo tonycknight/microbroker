@@ -2,6 +2,7 @@
 
 open System
 open System.Threading.Tasks
+open microbroker.Strings
 open Microsoft.Extensions.Logging
 
 type IQueue =
@@ -9,6 +10,7 @@ type IQueue =
     abstract member PushAsync: message: QueueMessage -> Task
     abstract member GetInfoAsync: unit -> Task<QueueInfo>
     abstract member DeleteAsync: unit -> Task
+    abstract member Name: string
 
 type IQueueFactory =
     abstract member CreateQueue: name: string -> IQueue
@@ -28,6 +30,12 @@ type QueueMessageData =
           created = data.created
           active = data.active
           expiry = data.expiry }
+
+[<CLIMutable>]
+type LinkedQueue =
+    { _id: obj
+      originQueueName: string
+      destinationQueueName: string }
 
 module MongoQueues =
     [<Literal>]
@@ -76,7 +84,7 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
                     |> Seq.map (fun m ->
                         { m with
                             _id = new MongoDB.Bson.ObjectId(Guid.NewGuid().ToString().Replace("-", "")) })
-                    |> Mongo.pushToQueue activeQueueMongoCol
+                    |> Mongo.pushToQueue activeQueueMongoCol // TODO: broadcast?
 
                 let ids = batch |> Seq.map (fun m -> $"ObjectId('{m._id}')") |> Strings.join ", "
                 let predicate = ids |> sprintf "{ '_id':  { $in: [%s] } }"
@@ -108,6 +116,8 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
     do moveTimer.Start()
 
     interface IQueue with
+        member this.Name = name
+
         member this.GetInfoAsync() =
             task {
                 let! activeCount = Mongo.estimatedCount activeQueueMongoCol
@@ -160,12 +170,88 @@ type MongoQueueFactory(config: AppConfiguration, logFactory: ILoggerFactory) =
         member this.CreateQueue(name: string) =
             new MongoQueue(config, logFactory, name)
 
+type ILinkedQueueProvider =
+    abstract member LinkQueuesAsync: originQueueName: string -> destinationQueueName: string -> Task<bool>
+    abstract member GetLinkedQueuesAsync: queueName: string -> Task<string list>
+    abstract member GetLinkedToQueuesAsync: queueName: string -> Task<string list>
+    abstract member DeletedLinkedQueuesAsync: originQueueName: string -> destinationQueueName: string -> Task<bool>
+
+type MongoLinkedQueueProvider(config: AppConfiguration, logFactory: ILoggerFactory)=
+    
+    let col =
+        Mongo.initCollection "originQueueName" config.mongoDbName "linkedqueues" config.mongoConnection
+        |> Mongo.setIndex "destinationQueueName"
+
+    let id origin destination = $"{origin}:::{destination}"
+
+    let add origin destination = 
+        task {
+            
+            let x = { LinkedQueue._id = (id origin destination); originQueueName = origin; destinationQueueName = destination}
+
+            let! r = x |> MongoBson.ofObject |> Mongo.upsert col
+            
+            return r.IsAcknowledged
+        }
+
+    let delete origin destination = 
+        task {            
+            let! r = (id origin destination) |> Mongo.deleteSingle col
+            
+            return r.IsAcknowledged && r.DeletedCount > 0
+        }
+
+    let getFrom origin = 
+        task {
+            let! xs = $"{{ originQueueName: '{origin}' }}" |> Mongo.getMany<LinkedQueue> col
+            
+            return xs |> List.ofSeq
+        }
+
+    let getTo origin =
+        task {
+            let! xs = $"{{ destinationQueueName: '{origin}' }}" |> Mongo.getMany<LinkedQueue> col
+            
+            return xs |> List.ofSeq
+        }
+    
+    interface ILinkedQueueProvider with        
+        member this.LinkQueuesAsync originQueueName destinationQueueName = 
+            task {
+                if originQueueName ==~ destinationQueueName then    
+                    invalidArg "" "Cannot reference self."
+                                
+                let! existing = getFrom destinationQueueName 
+                if existing |> Seq.exists (fun x -> x.destinationQueueName ==~ originQueueName) then
+                    invalidArg "" "Cannot create a circular reference."
+
+                return! add originQueueName destinationQueueName                
+            }
+
+        member this.GetLinkedQueuesAsync queueName = 
+            task {
+                let! xs = getFrom queueName 
+                return xs |> List.map _.destinationQueueName
+            }
+
+        member this.GetLinkedToQueuesAsync queueName =
+            task {
+                let! xs = getTo queueName 
+                return xs |> List.map _.originQueueName
+            }
+
+        member this.DeletedLinkedQueuesAsync originQueueName destinationQueueName = delete originQueueName destinationQueueName
+
+        
 type IQueueProvider =
     abstract member GetQueuesAsync: unit -> Task<QueueInfo[]>
     abstract member GetQueueAsync: queueName: string -> Task<IQueue>
     abstract member DeleteQueueAsync: queueName: string -> Task<bool>
+    abstract member LinkQueuesAsync: originQueueName: string -> destinationQueueName: string -> Task<bool>
+    abstract member GetLinkedQueues: queueName: string -> Task<IQueue list>
+    abstract member DeleteLinkedQueuesAsync: originQueueName: string -> destinationQueueName: string -> Task<bool>
 
-type MongoQueueProvider(config: AppConfiguration, queueFactory: IQueueFactory) =
+type MongoQueueProvider(config: AppConfiguration, queueFactory: IQueueFactory, linkedQueueProvider: ILinkedQueueProvider) =
 
     let queueColNames () =
         Mongo.findCollectionNames config.mongoDbName config.mongoConnection
@@ -208,4 +294,36 @@ type MongoQueueProvider(config: AppConfiguration, queueFactory: IQueueFactory) =
 
         member this.GetQueueAsync(queueName) = task { return getQueue queueName }
 
-        member this.DeleteQueueAsync(queueName) = deleteQueue queueName
+        member this.DeleteQueueAsync(queueName) = 
+            task {
+                let! linksTo = linkedQueueProvider.GetLinkedQueuesAsync queueName
+                let! linksFrom = linkedQueueProvider.GetLinkedToQueuesAsync queueName
+
+                let deletionsTo = linksTo |> Seq.map (fun n -> linkedQueueProvider.DeletedLinkedQueuesAsync queueName n)
+                let deletionsFrom = linksFrom |> Seq.map (fun n -> linkedQueueProvider.DeletedLinkedQueuesAsync n queueName)
+                let deletions = deletionsTo |> Seq.append deletionsFrom |> Array.ofSeq
+
+                let! rs = System.Threading.Tasks.Task.WhenAll deletions
+                
+                let! r = deleteQueue queueName
+
+                return r
+            }
+    
+        member this.LinkQueuesAsync originQueueName destinationQueueName = 
+            task {
+                let! r = linkedQueueProvider.LinkQueuesAsync originQueueName destinationQueueName 
+
+                if r then   
+                    [ originQueueName; destinationQueueName ] |> List.map getQueue |> ignore
+
+                return r
+            }
+                   
+        member this.GetLinkedQueues queueName = 
+            task {
+                let! names = linkedQueueProvider.GetLinkedQueuesAsync queueName
+                return names |> List.map getQueue                
+            }
+            
+        member this.DeleteLinkedQueuesAsync originQueueName destinationQueueName = linkedQueueProvider.DeletedLinkedQueuesAsync originQueueName destinationQueueName 
