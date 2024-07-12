@@ -139,9 +139,11 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
                     if message.active > DateTimeOffset.UtcNow then
                         ttaQueueMongoCol
                     else
-                        activeQueueMongoCol
-
-                do! [ setExpiry message ] |> Mongo.pushToQueue col
+                        activeQueueMongoCol                
+                try
+                    do! [ setExpiry message ] |> Mongo.pushToQueue col
+                with ex ->
+                    $"Queue [{name}] - error {ex.Message}" |> log.LogError
             }
 
         member this.DeleteAsync() =

@@ -11,17 +11,14 @@ module WebApi =
 
     let private queue (name: string) (queueProvider: IQueueProvider) = queueProvider.GetQueueAsync name
 
-    let rec private pushToQueues (queues: IQueue list) (msg: QueueMessage) =
+    let private pushToQueues (queues: seq<IQueue>) (msg: QueueMessage) =
         task {
-            match queues with
-            | [] -> return ignore 0
-            | q :: qs ->
-                do! q.PushAsync msg // TODO: error handling?
+            let pushes = queues |> Seq.map (fun q -> q.PushAsync msg) |> Array.ofSeq
 
-                return! pushToQueues qs msg
+            do! System.Threading.Tasks.Task.WhenAll pushes
         }
 
-    let rec private pushManyToQueues (queues: IQueue list) (msgs: QueueMessage list) =
+    let rec private pushManyToQueues queues msgs =
         task {
             match msgs with
             | [] -> return ignore 0
@@ -74,12 +71,12 @@ module WebApi =
                             created = DateTimeOffset.UtcNow }
 
                     do! pushManyToQueues [ q ] [ msg ]
-                    
+
                     return! Successful.NO_CONTENT next ctx
             }
 
     let postMessages (queueId: string) =
-        fun (next: HttpFunc) (ctx: HttpContext) ->            
+        fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
                 match! WebApiValidation.getRequest<QueueMessage[]> ctx with
                 | Choice1Of2 error -> return! RequestErrors.BAD_REQUEST error next ctx
@@ -94,7 +91,7 @@ module WebApi =
                         |> List.ofSeq
 
                     do! pushManyToQueues [ q ] msgs
-                    
+
                     return! Successful.NO_CONTENT next ctx
             }
 
