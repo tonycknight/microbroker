@@ -15,6 +15,20 @@ type IQueue =
 type IQueueFactory =
     abstract member CreateQueue: name: string -> IQueue
 
+type IQueueProvider =
+    abstract member GetQueuesAsync: unit -> Task<QueueInfo[]>
+    abstract member GetQueueAsync: queueName: string -> Task<IQueue>
+    abstract member DeleteQueueAsync: queueName: string -> Task<bool>
+    abstract member LinkQueuesAsync: originQueueName: string -> destinationQueueName: string -> Task<bool>
+    abstract member GetLinkedQueues: queueName: string -> Task<IQueue list>
+    abstract member DeleteLinkedQueuesAsync: originQueueName: string -> destinationQueueName: string -> Task<bool>
+
+type ILinkedQueueProvider =
+    abstract member LinkQueuesAsync: originQueueName: string -> destinationQueueName: string -> Task<bool>
+    abstract member GetLinkedQueuesAsync: queueName: string -> Task<string list>
+    abstract member GetLinkedToQueuesAsync: queueName: string -> Task<string list>
+    abstract member DeletedLinkedQueuesAsync: originQueueName: string -> destinationQueueName: string -> Task<bool>
+
 [<CLIMutable>]
 type QueueMessageData =
     { _id: MongoDB.Bson.ObjectId
@@ -170,12 +184,6 @@ type MongoQueueFactory(config: AppConfiguration, logFactory: ILoggerFactory) =
         member this.CreateQueue(name: string) =
             new MongoQueue(config, logFactory, name)
 
-type ILinkedQueueProvider =
-    abstract member LinkQueuesAsync: originQueueName: string -> destinationQueueName: string -> Task<bool>
-    abstract member GetLinkedQueuesAsync: queueName: string -> Task<string list>
-    abstract member GetLinkedToQueuesAsync: queueName: string -> Task<string list>
-    abstract member DeletedLinkedQueuesAsync: originQueueName: string -> destinationQueueName: string -> Task<bool>
-
 type MongoLinkedQueueProvider(config: AppConfiguration, logFactory: ILoggerFactory)=
     
     let col =
@@ -241,15 +249,6 @@ type MongoLinkedQueueProvider(config: AppConfiguration, logFactory: ILoggerFacto
             }
 
         member this.DeletedLinkedQueuesAsync originQueueName destinationQueueName = delete originQueueName destinationQueueName
-
-        
-type IQueueProvider =
-    abstract member GetQueuesAsync: unit -> Task<QueueInfo[]>
-    abstract member GetQueueAsync: queueName: string -> Task<IQueue>
-    abstract member DeleteQueueAsync: queueName: string -> Task<bool>
-    abstract member LinkQueuesAsync: originQueueName: string -> destinationQueueName: string -> Task<bool>
-    abstract member GetLinkedQueues: queueName: string -> Task<IQueue list>
-    abstract member DeleteLinkedQueuesAsync: originQueueName: string -> destinationQueueName: string -> Task<bool>
 
 type MongoQueueProvider(config: AppConfiguration, queueFactory: IQueueFactory, linkedQueueProvider: ILinkedQueueProvider) =
 
