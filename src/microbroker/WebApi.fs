@@ -113,14 +113,13 @@ module WebApi =
 
     let linkQueues (queueId: string, originQueueId: string) =
         fun (next: HttpFunc) (ctx: HttpContext) ->
-            task {                
+            task {
                 try
                     let qp = queueProvider ctx
                     let! r = qp.LinkQueuesAsync originQueueId queueId
-                    
+
                     return! Successful.NO_CONTENT next ctx
-                with 
-                | :? System.ArgumentException as ex ->
+                with :? System.ArgumentException as ex ->
                     return! RequestErrors.BAD_REQUEST [ ex.Message ] next ctx
             }
 
@@ -130,7 +129,7 @@ module WebApi =
                 let qp = queueProvider ctx
 
                 let! qs = qp.GetLinkedQueues queueId
-                
+
                 let r = qs |> Seq.map _.Name |> Seq.sortBy id |> Array.ofSeq
 
                 return! Successful.OK r next ctx
@@ -142,8 +141,8 @@ module WebApi =
                 let qp = queueProvider ctx
 
                 let! r = qp.DeleteLinkedQueuesAsync originQueueId destinationQueueId
-                
-                return! 
+
+                return!
                     if r then
                         Successful.NO_CONTENT next ctx
                     else

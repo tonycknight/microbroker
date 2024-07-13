@@ -17,7 +17,8 @@ module Strings =
 
     let join (delim: string) (values: seq<string>) = System.String.Join(delim, values)
 
-    let inline (==~) (left: string) (right: string) = StringComparer.InvariantCultureIgnoreCase.Equals(left, right)
+    let inline (==~) (left: string) (right: string) =
+        StringComparer.InvariantCultureIgnoreCase.Equals(left, right)
 
 module Args =
 

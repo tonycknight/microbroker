@@ -30,10 +30,11 @@ module ApiRoutes =
               POST
               >=> choose
                       [ routeCif "/queues/%s/message/" (fun id -> WebApi.postMessage id)
-                        routeCif "/queues/%s/messages/" (fun id -> WebApi.postMessages id) 
-                        routeCif "/queues/%s/watch/%s/" (fun (destination, origin) -> WebApi.linkQueues (destination, origin) ) ]
-              DELETE 
-              >=> choose 
-                      [ routeCif "/queues/%s/" (fun id -> WebApi.deleteQueue id)  
-                        routeCif "/queues/%s/watch/%s/" (fun (destination, origin) -> WebApi.deleteQueueWatcher (destination, origin) )
-                    ] ]
+                        routeCif "/queues/%s/messages/" (fun id -> WebApi.postMessages id)
+                        routeCif "/queues/%s/watch/%s/" (fun (destination, origin) ->
+                            WebApi.linkQueues (destination, origin)) ]
+              DELETE
+              >=> choose
+                      [ routeCif "/queues/%s/" (fun id -> WebApi.deleteQueue id)
+                        routeCif "/queues/%s/watch/%s/" (fun (destination, origin) ->
+                            WebApi.deleteQueueWatcher (destination, origin)) ] ]
