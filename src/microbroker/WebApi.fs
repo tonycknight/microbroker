@@ -91,11 +91,7 @@ module WebApi =
                                 created = DateTimeOffset.UtcNow })
                         |> List.ofSeq
 
-                    let! linkedQueues = qp.GetLinkedQueues queueId 
-
-                    let queues = q :: linkedQueues
-                    
-                    do! pushManyToQueues queues msgs
+                    do! pushManyToQueues [ q ] msgs
 
                     return! Successful.NO_CONTENT next ctx
             }

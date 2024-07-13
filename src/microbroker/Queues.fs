@@ -12,9 +12,6 @@ type IQueue =
     abstract member DeleteAsync: unit -> Task
     abstract member Name: string
 
-type IQueueFactory =
-    abstract member CreateQueue: name: string -> IQueue
-
 type IQueueProvider =
     abstract member GetQueuesAsync: unit -> Task<QueueInfo[]>
     abstract member GetQueueAsync: queueName: string -> Task<IQueue>
@@ -28,6 +25,9 @@ type ILinkedQueueProvider =
     abstract member GetLinkedQueuesAsync: queueName: string -> Task<string list>
     abstract member GetLinkedToQueuesAsync: queueName: string -> Task<string list>
     abstract member DeletedLinkedQueuesAsync: originQueueName: string -> destinationQueueName: string -> Task<bool>
+
+type IQueueMessageRelay =
+    abstract member RelayAsync: originQueueName: string -> msgs: QueueMessage[] -> Task<bool>
 
 [<CLIMutable>]
 type QueueMessageData =
@@ -61,14 +61,17 @@ module MongoQueues =
     [<Literal>]
     let ttaQueueNamePrefix = "ttaqueue__"
 
-type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
+    [<Literal>]
+    let linkedQueuesName = "linkedqueues"
+
+type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQueueMessageRelay, name) =
 
     let name = name |> Strings.defaultIf "" MongoQueues.defaultQueueName
 
     let activeQueueCollectionName = $"{MongoQueues.queueNamePrefix}{name}"
     let ttaQueueCollectionName = $"{MongoQueues.ttaQueueNamePrefix}{name}"
     let log = logFactory.CreateLogger<MongoQueue>()
-
+        
     let setExpiry (msg: QueueMessage) =
         if msg.expiry = DateTimeOffset.MinValue then
             { msg with
@@ -85,6 +88,13 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
     let ttaQueueMongoCol =
         Mongo.initCollection "active" config.mongoDbName ttaQueueCollectionName config.mongoConnection
 
+    let relayToLinkedQueues msgs =
+        task {
+            let! r = relay.RelayAsync name msgs
+            
+            ignore r
+        }
+
     let moveTtaMessagesToActive () =
         task {
             let cutOff = DateTimeOffset.UtcNow
@@ -98,12 +108,14 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
                     |> Seq.map (fun m ->
                         { m with
                             _id = new MongoDB.Bson.ObjectId(Guid.NewGuid().ToString().Replace("-", "")) })
-                    |> Mongo.pushToQueue activeQueueMongoCol // TODO: broadcast?
+                    |> Mongo.pushToQueue activeQueueMongoCol 
 
                 let ids = batch |> Seq.map (fun m -> $"ObjectId('{m._id}')") |> Strings.join ", "
                 let predicate = ids |> sprintf "{ '_id':  { $in: [%s] } }"
 
                 let! deletions = predicate |> Mongo.deleteFromQueue ttaQueueMongoCol
+
+                do! batch |> Array.map QueueMessageData.toQueueMessage |> relayToLinkedQueues
 
                 totalMoved <- totalMoved + deletions
 
@@ -159,13 +171,16 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
 
         member this.PushAsync message =
             task {
-                let col =
+                let (relay,col) =
                     if message.active > DateTimeOffset.UtcNow then
-                        ttaQueueMongoCol
+                        (false,ttaQueueMongoCol)
                     else
-                        activeQueueMongoCol                
+                        (true,activeQueueMongoCol)
                 try
-                    do! [ setExpiry message ] |> Mongo.pushToQueue col
+                    let messages = [| setExpiry message |]
+                    do! messages |> Mongo.pushToQueue col
+                    if relay then
+                        do! relayToLinkedQueues messages
                 with ex ->
                     $"Queue [{name}] - error {ex.Message}" |> log.LogError
             }
@@ -179,15 +194,27 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, name) =
                 moveTimer.Dispose()
             }
 
-type MongoQueueFactory(config: AppConfiguration, logFactory: ILoggerFactory) =
-    interface IQueueFactory with
-        member this.CreateQueue(name: string) =
-            new MongoQueue(config, logFactory, name)
+type QueueMessageRelay(queueProvider: IQueueProvider) =
+    interface IQueueMessageRelay with
+        member this.RelayAsync origin messages = 
+            task {
+                let! destinations = queueProvider.GetLinkedQueues origin
+
+                let sends = 
+                    destinations 
+                    |> Seq.collect (fun q -> messages |> Seq.map (fun m -> q.PushAsync m ) ) 
+                    |> Array.ofSeq
+
+                // TODO: blocking call - should be entirely asynch. Some queues perhaps?
+                do! System.Threading.Tasks.Task.WhenAll sends
+
+                return true
+            }
 
 type MongoLinkedQueueProvider(config: AppConfiguration, logFactory: ILoggerFactory)=
     
     let col =
-        Mongo.initCollection "originQueueName" config.mongoDbName "linkedqueues" config.mongoConnection
+        Mongo.initCollection "originQueueName" config.mongoDbName MongoQueues.linkedQueuesName config.mongoConnection
         |> Mongo.setIndex "destinationQueueName"
 
     let id origin destination = $"{origin}:::{destination}"
@@ -250,24 +277,27 @@ type MongoLinkedQueueProvider(config: AppConfiguration, logFactory: ILoggerFacto
 
         member this.DeletedLinkedQueuesAsync originQueueName destinationQueueName = delete originQueueName destinationQueueName
 
-type MongoQueueProvider(config: AppConfiguration, queueFactory: IQueueFactory, linkedQueueProvider: ILinkedQueueProvider) =
+type MongoQueueProvider(config: AppConfiguration, logFactory: ILoggerFactory, linkedQueueProvider: ILinkedQueueProvider) as this =
 
     let queueColNames () =
         Mongo.findCollectionNames config.mongoDbName config.mongoConnection
         |> Array.filter (fun n -> n.StartsWith(MongoQueues.queueNamePrefix))
         |> Array.map (fun n -> n.Substring(MongoQueues.queueNamePrefix.Length))
 
+    let relay = new QueueMessageRelay(this :> IQueueProvider) :> IQueueMessageRelay
+    let createQueue name = new MongoQueue(config, logFactory, relay, name) :> IQueue
+
     let queues =
         let result =
             new System.Collections.Concurrent.ConcurrentDictionary<string, IQueue>(StringComparer.OrdinalIgnoreCase)
 
         queueColNames ()
-        |> Array.iter (fun n -> result.GetOrAdd(n, queueFactory.CreateQueue) |> ignore)
+        |> Array.iter (fun n -> result.GetOrAdd(n, createQueue) |> ignore)
 
         result
 
     let getQueue queueName =
-        queues.GetOrAdd(queueName, queueFactory.CreateQueue)
+        queues.GetOrAdd(queueName, createQueue)
 
     let deleteQueue queueName =
         match queues.TryGetValue(queueName) with
@@ -295,6 +325,8 @@ type MongoQueueProvider(config: AppConfiguration, queueFactory: IQueueFactory, l
 
         member this.DeleteQueueAsync(queueName) = 
             task {
+                let! r = deleteQueue queueName
+
                 let! linksTo = linkedQueueProvider.GetLinkedQueuesAsync queueName
                 let! linksFrom = linkedQueueProvider.GetLinkedToQueuesAsync queueName
 
@@ -303,9 +335,7 @@ type MongoQueueProvider(config: AppConfiguration, queueFactory: IQueueFactory, l
                 let deletions = deletionsTo |> Seq.append deletionsFrom |> Array.ofSeq
 
                 let! rs = System.Threading.Tasks.Task.WhenAll deletions
-                
-                let! r = deleteQueue queueName
-
+                                
                 return r
             }
     
@@ -326,3 +356,4 @@ type MongoQueueProvider(config: AppConfiguration, queueFactory: IQueueFactory, l
             }
             
         member this.DeleteLinkedQueuesAsync originQueueName destinationQueueName = linkedQueueProvider.DeletedLinkedQueuesAsync originQueueName destinationQueueName 
+
