@@ -210,13 +210,12 @@ type QueueMessageRelayActor(logFactory: ILoggerFactory, queueProvider: IQueuePro
 
                     let destinations = destinations |> Seq.map _.Name |> Strings.join ", "
 
-                    log.LogInformation(
-                        $"Forwarded [{messages.Length}] messaages from [{origin}] to queues [{destinations}]."
-                    )
+                    $"Forwarded [{messages.Length}] messaages from [{origin}] to queues [{destinations}]."
+                    |> log.LogInformation
 
                     return true
                 with ex ->
-                    log.LogError ex.Message
+                    log.LogError $"Error forwarding from [{origin}] - {ex.Message}"
                     return false
         }
 
