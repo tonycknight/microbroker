@@ -194,22 +194,62 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
                 moveTimer.Dispose()
             }
 
-type QueueMessageRelay(queueProvider: IQueueProvider) =
+type QueueMessageRelayActor (logFactory: ILoggerFactory, queueProvider: IQueueProvider) =
+    let log = logFactory.CreateLogger<QueueMessageRelayActor>()
+
+    let forward (origin, messages) =
+        task {
+            let! destinations = queueProvider.GetLinkedQueues origin
+            if List.isEmpty destinations then
+                return false
+            else
+                let sends = 
+                    destinations 
+                    |> Seq.collect (fun q -> messages |> Array.map (fun m -> q.PushAsync m ) ) 
+                    |> Array.ofSeq
+
+                try
+                    do! System.Threading.Tasks.Task.WhenAll sends
+
+                    let destinations = destinations |> Seq.map _.Name |> Strings.join ", "
+                    log.LogInformation($"Forwarded [{messages.Length}] messaages to queues [{destinations}] from [{origin}].")
+                    return true
+                with ex ->
+                    log.LogError ex.Message
+                    return false
+        }
+
+    let actor =
+        MailboxProcessor<(string * QueueMessage[])>.Start(fun inbox ->
+            let rec loop () =
+                async {
+                    let! msg = inbox.Receive()
+
+                    let! state =
+                        match msg with
+                        | (origin, messages) ->
+                            async {
+                                let! r = forward (origin, messages) |> Async.AwaitTask
+                                ignore r
+                            }                        
+                    return! loop ()
+                }
+
+            loop () )
+
+    member this.Forward(origin: string, messages: QueueMessage[]) = 
+        if messages.Length > 0 then
+            actor.Post (origin, messages)
+
+type QueueMessageRelay(logger: ILoggerFactory, queueProvider: IQueueProvider) =
+    let actor = new QueueMessageRelayActor(logger, queueProvider)
+
     interface IQueueMessageRelay with
         member this.RelayAsync origin messages = 
             task {
-                let! destinations = queueProvider.GetLinkedQueues origin
-
-                let sends = 
-                    destinations 
-                    |> Seq.collect (fun q -> messages |> Seq.map (fun m -> q.PushAsync m ) ) 
-                    |> Array.ofSeq
-
-                // TODO: blocking call - should be entirely asynch. Some queues perhaps?
-                do! System.Threading.Tasks.Task.WhenAll sends
-
+                do actor.Forward (origin, messages)
                 return true
-            }
+            }            
 
 type MongoLinkedQueueProvider(config: AppConfiguration, logFactory: ILoggerFactory)=
     
@@ -284,7 +324,7 @@ type MongoQueueProvider(config: AppConfiguration, logFactory: ILoggerFactory, li
         |> Array.filter (fun n -> n.StartsWith(MongoQueues.queueNamePrefix))
         |> Array.map (fun n -> n.Substring(MongoQueues.queueNamePrefix.Length))
 
-    let relay = new QueueMessageRelay(this :> IQueueProvider) :> IQueueMessageRelay
+    let relay = new QueueMessageRelay(logFactory, this :> IQueueProvider) :> IQueueMessageRelay
     let createQueue name = new MongoQueue(config, logFactory, relay, name) :> IQueue
 
     let queues =
