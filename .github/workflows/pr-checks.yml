@@ -3,6 +3,12 @@ name: Pull Request checks
 on:
   pull_request:
   
+permissions:
+  checks: write
+  pull-requests: write
+  contents: read
+  packages: write
+
 jobs:  
   size-label:
     name: Set change size
