@@ -11,6 +11,7 @@ group Main
     nuget Newtonsoft.Json
     nuget Microsoft.Extensions.Caching.Memory
     nuget Microsoft.IO.RecyclableMemoryStream 2.3.2
+    nuget System.Text.Json
 
 // [ FAKE GROUP ]
 group Tests
@@ -24,7 +25,8 @@ group Tests
     nuget Microsoft.NET.Test.Sdk
     nuget Newtonsoft.Json
     nuget NSubstitute
-    nuget System.Net.Http
+    nuget System.Formats.Asn1
+    nuget System.Net.Http    
     nuget System.Text.RegularExpressions
     nuget xunit
     nuget xunit.runner.visualstudio

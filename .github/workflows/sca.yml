@@ -16,6 +16,7 @@ on:
 permissions:
   checks: write
   contents: read
+  pull-requests: write
 
 jobs:
   sca:

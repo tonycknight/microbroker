@@ -6,10 +6,26 @@ open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.DependencyInjection
 
 module WebApi =
-    let queueProvider (ctx: HttpContext) =
+    let private queueProvider (ctx: HttpContext) =
         ctx.RequestServices.GetRequiredService<IQueueProvider>()
 
-    let queue (name: string) (queueProvider: IQueueProvider) = queueProvider.GetQueueAsync name
+    let private queue (name: string) (queueProvider: IQueueProvider) = queueProvider.GetQueueAsync name
+
+    let private pushToQueues (queues: seq<IQueue>) (msg: QueueMessage) =
+        task {
+            let pushes = queues |> Seq.map (fun q -> q.PushAsync msg) |> Array.ofSeq
+
+            do! System.Threading.Tasks.Task.WhenAll pushes
+        }
+
+    let rec private pushManyToQueues queues msgs =
+        task {
+            match msgs with
+            | [] -> return ignore 0
+            | h :: ms ->
+                do! pushToQueues queues h
+                return! pushManyToQueues queues ms
+        }
 
     let getQueues =
         fun (next: HttpFunc) (ctx: HttpContext) ->
@@ -54,26 +70,19 @@ module WebApi =
                         { msg with
                             created = DateTimeOffset.UtcNow }
 
-                    do! q.PushAsync msg
+                    do! pushManyToQueues [ q ] [ msg ]
+
                     return! Successful.NO_CONTENT next ctx
             }
 
     let postMessages (queueId: string) =
         fun (next: HttpFunc) (ctx: HttpContext) ->
-            let rec loop (q: IQueue) msgs =
-                task {
-                    match msgs with
-                    | [] -> return ignore 0
-                    | h :: ms ->
-                        do! q.PushAsync h
-                        return! loop q ms
-                }
-
             task {
                 match! WebApiValidation.getRequest<QueueMessage[]> ctx with
                 | Choice1Of2 error -> return! RequestErrors.BAD_REQUEST error next ctx
                 | Choice2Of2 msgs ->
-                    let! q = queueProvider ctx |> queue queueId
+                    let qp = queueProvider ctx
+                    let! q = qp |> queue queueId
 
                     let msgs =
                         msgs
@@ -82,7 +91,7 @@ module WebApi =
                                 created = DateTimeOffset.UtcNow })
                         |> List.ofSeq
 
-                    do! loop q msgs
+                    do! pushManyToQueues [ q ] msgs
 
                     return! Successful.NO_CONTENT next ctx
             }
@@ -93,6 +102,45 @@ module WebApi =
                 let qp = queueProvider ctx
 
                 let! r = qp.DeleteQueueAsync queueId
+
+                return!
+                    if r then
+                        Successful.NO_CONTENT next ctx
+                    else
+                        ctx.SetStatusCode StatusCodes.Status404NotFound
+                        next ctx
+            }
+
+    let linkQueues (queueId: string, originQueueId: string) =
+        fun (next: HttpFunc) (ctx: HttpContext) ->
+            task {
+                try
+                    let qp = queueProvider ctx
+                    let! r = qp.LinkQueuesAsync originQueueId queueId
+
+                    return! Successful.NO_CONTENT next ctx
+                with :? System.ArgumentException as ex ->
+                    return! RequestErrors.BAD_REQUEST [ ex.Message ] next ctx
+            }
+
+    let getQueueWatchers (queueId: string) =
+        fun (next: HttpFunc) (ctx: HttpContext) ->
+            task {
+                let qp = queueProvider ctx
+
+                let! qs = qp.GetLinkedQueues queueId
+
+                let r = qs |> Seq.map _.Name |> Seq.sortBy id |> Array.ofSeq
+
+                return! Successful.OK r next ctx
+            }
+
+    let deleteQueueWatcher (destinationQueueId: string, originQueueId: string) =
+        fun (next: HttpFunc) (ctx: HttpContext) ->
+            task {
+                let qp = queueProvider ctx
+
+                let! r = qp.DeleteLinkedQueuesAsync originQueueId destinationQueueId
 
                 return!
                     if r then

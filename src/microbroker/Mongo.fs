@@ -92,6 +92,10 @@ module Mongo =
 
         colNames.ToEnumerable() |> Array.ofSeq
 
+    let deleteSingle (collection: IMongoCollection<BsonDocument>) id =
+        let filter = id |> idFilter |> MongoBson.ofJson |> FilterDefinition.op_Implicit
+        collection.DeleteOneAsync(filter)
+
     let upsert (collection: IMongoCollection<BsonDocument>) (doc: BsonDocument) =
         let opts = ReplaceOptions()
         opts.IsUpsert <- true
@@ -107,6 +111,14 @@ module Mongo =
 
     let query<'a> (collection: IMongoCollection<BsonDocument>) =
         collection.AsQueryable<BsonDocument>() |> Seq.map MongoBson.toObject<'a>
+
+    let getMany<'a> (collection: IMongoCollection<BsonDocument>) (predicate: string) =
+        task {
+            let fieldFilter = new JsonFilterDefinition<BsonDocument>(predicate)
+            use! r = collection.FindAsync(fieldFilter)
+
+            return r.ToEnumerable() |> Seq.map MongoBson.toObject<'a> |> Array.ofSeq
+        }
 
     let estimatedCount (collection: IMongoCollection<BsonDocument>) =
         collection.EstimatedDocumentCountAsync()
