@@ -27,7 +27,7 @@ type ILinkedQueueProvider =
     abstract member DeletedLinkedQueuesAsync: originQueueName: string -> destinationQueueName: string -> Task<bool>
 
 type IQueueMessageRelay =
-    abstract member RelayAsync: originQueueName: string -> msgs: QueueMessage[] -> Task<bool>
+    abstract member Relay: originQueueName: string -> msgs: QueueMessage[] -> unit
 
 [<CLIMutable>]
 type QueueMessageData =
@@ -88,13 +88,6 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
     let ttaQueueMongoCol =
         Mongo.initCollection "active" config.mongoDbName ttaQueueCollectionName config.mongoConnection
 
-    let relayToLinkedQueues msgs =
-        task {
-            let! r = relay.RelayAsync name msgs
-            
-            ignore r
-        }
-
     let moveTtaMessagesToActive () =
         task {
             let cutOff = DateTimeOffset.UtcNow
@@ -115,7 +108,7 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
 
                 let! deletions = predicate |> Mongo.deleteFromQueue ttaQueueMongoCol
 
-                do! batch |> Array.map QueueMessageData.toQueueMessage |> relayToLinkedQueues
+                do batch |> Array.map QueueMessageData.toQueueMessage |> relay.Relay name 
 
                 totalMoved <- totalMoved + deletions
 
@@ -171,7 +164,7 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
 
         member this.PushAsync message =
             task {
-                let (relay,col) =
+                let (relayMessages,col) =
                     if message.active > DateTimeOffset.UtcNow then
                         (false,ttaQueueMongoCol)
                     else
@@ -179,8 +172,9 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
                 try
                     let messages = [| setExpiry message |]
                     do! messages |> Mongo.pushToQueue col
-                    if relay then
-                        do! relayToLinkedQueues messages
+                    if relayMessages then
+                        relay.Relay name messages
+
                 with ex ->
                     $"Queue [{name}] - error {ex.Message}" |> log.LogError
             }
@@ -236,20 +230,12 @@ type QueueMessageRelayActor (logFactory: ILoggerFactory, queueProvider: IQueuePr
                 }
 
             loop () )
-
-    member this.Forward(origin: string, messages: QueueMessage[]) = 
-        if messages.Length > 0 then
-            actor.Post (origin, messages)
-
-type QueueMessageRelay(logger: ILoggerFactory, queueProvider: IQueueProvider) =
-    let actor = new QueueMessageRelayActor(logger, queueProvider)
-
+    
     interface IQueueMessageRelay with
-        member this.RelayAsync origin messages = 
-            task {
-                do actor.Forward (origin, messages)
-                return true
-            }            
+        member this.Relay(origin: string) (messages: QueueMessage[]) = 
+            if messages.Length > 0 then
+                actor.Post (origin, messages)
+
 
 type MongoLinkedQueueProvider(config: AppConfiguration, logFactory: ILoggerFactory)=
     
@@ -324,7 +310,7 @@ type MongoQueueProvider(config: AppConfiguration, logFactory: ILoggerFactory, li
         |> Array.filter (fun n -> n.StartsWith(MongoQueues.queueNamePrefix))
         |> Array.map (fun n -> n.Substring(MongoQueues.queueNamePrefix.Length))
 
-    let relay = new QueueMessageRelay(logFactory, this :> IQueueProvider) :> IQueueMessageRelay
+    let relay = new QueueMessageRelayActor(logFactory, this :> IQueueProvider)
     let createQueue name = new MongoQueue(config, logFactory, relay, name) :> IQueue
 
     let queues =
