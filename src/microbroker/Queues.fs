@@ -123,7 +123,7 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
             try
                 $"Starting TTA move for queue [{name}]..." |> log.LogTrace
                 let deletions = moveTtaMessagesToActive().Result
-                $"{deletions} messages moved for queue [{name}]." |> log.LogInformation
+                $"[{deletions}] TTA messages moved for queue [{name}]." |> log.LogInformation
             with ex ->
                 log.LogError(ex, ex.Message)
 
@@ -206,7 +206,7 @@ type QueueMessageRelayActor (logFactory: ILoggerFactory, queueProvider: IQueuePr
                     do! System.Threading.Tasks.Task.WhenAll sends
 
                     let destinations = destinations |> Seq.map _.Name |> Strings.join ", "
-                    log.LogInformation($"Forwarded [{messages.Length}] messaages to queues [{destinations}] from [{origin}].")
+                    log.LogInformation($"Forwarded [{messages.Length}] messaages from [{origin}] to queues [{destinations}].")
                     return true
                 with ex ->
                     log.LogError ex.Message
@@ -217,15 +217,10 @@ type QueueMessageRelayActor (logFactory: ILoggerFactory, queueProvider: IQueuePr
         MailboxProcessor<(string * QueueMessage[])>.Start(fun inbox ->
             let rec loop () =
                 async {
-                    let! msg = inbox.Receive()
+                    let! (origin, messages) = inbox.Receive()
 
-                    let! state =
-                        match msg with
-                        | (origin, messages) ->
-                            async {
-                                let! r = forward (origin, messages) |> Async.AwaitTask
-                                ignore r
-                            }                        
+                    forward (origin, messages) |> Async.AwaitTask |> ignore
+                    
                     return! loop ()
                 }
 
