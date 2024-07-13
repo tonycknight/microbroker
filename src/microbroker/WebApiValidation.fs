@@ -5,6 +5,7 @@ open Giraffe
 open Microsoft.AspNetCore.Http
 
 module WebApiValidation =
+    
     let getRequest<'a> (ctx: HttpContext) =
         task {
             if
@@ -12,8 +13,7 @@ module WebApiValidation =
                 && ctx.Request.ContentType
                    <> $"{System.Net.Mime.MediaTypeNames.Application.Json}; charset=utf-8"
             then
-                let result = { ApiErrorResult.errors = [| "Invalid content type" |] }
-                return Choice1Of2 result
+                return Choice1Of2 { ApiErrorResult.errors = [| "Invalid content type" |] }
             else
                 try
                     let! msg = ctx.BindModelAsync<'a>()
@@ -25,3 +25,12 @@ module WebApiValidation =
                 with ex ->
                     return Choice1Of2 { ApiErrorResult.errors = [| "Invalid request" |] }
         }
+
+    let validateQueueName value =
+        let isMatch value = 
+            let p = Char.isAlphaNumeric ||>> Char.isIn [| '-'; '_' |]
+            value |> Seq.forall p
+                
+        match isMatch value with
+        | true -> Choice2Of2 value
+        | false -> Choice1Of2 { ApiErrorResult.errors = [|  $"Invalid queue name {value}" |] }
