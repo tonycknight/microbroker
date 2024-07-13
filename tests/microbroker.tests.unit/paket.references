@@ -7,3 +7,4 @@ FsCheck.XUnit
 coverlet.msbuild
 coverlet.collector
 nsubstitute
+System.Formats.Asn1
