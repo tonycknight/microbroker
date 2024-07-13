@@ -37,6 +37,9 @@ jobs:
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
 
+  sca:
+    uses: ./.github/workflows/sca.yml
+
   check-style-rules:
     runs-on: ubuntu-latest
     name: Check Style rules
