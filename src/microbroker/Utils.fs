@@ -9,12 +9,12 @@ module Combinators =
 
     let (||>>) x y = (fun (v: 'a) -> x (v) || y (v))
 
-module Char = 
+module Char =
     let toLowerInvariant (value: char) = Char.ToLowerInvariant(value)
 
     let isAlphaNumeric (value: char) = Char.IsLetterOrDigit value
 
-    let isIn (allowedChars: seq<char>) (value: char) = 
+    let isIn (allowedChars: seq<char>) (value: char) =
         let value = toLowerInvariant value
         allowedChars |> Seq.map toLowerInvariant |> Seq.contains value
 

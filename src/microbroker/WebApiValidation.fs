@@ -5,14 +5,28 @@ open Giraffe
 open Microsoft.AspNetCore.Http
 
 module WebApiValidation =
-    
-    let getRequest<'a> (ctx: HttpContext) =
+
+    let validContentTypes =
+        [ System.Net.Mime.MediaTypeNames.Application.Json
+          $"{System.Net.Mime.MediaTypeNames.Application.Json}; charset=utf-8" ]
+
+    let isValidQueueName value =
+        let p = Char.isAlphaNumeric ||>> Char.isIn [| '-'; '_' |]
+        value |> Seq.forall p
+
+    let isValidContentType (ctx: HttpContext) =
+        validContentTypes |> Seq.contains ctx.Request.ContentType
+
+    let validateQueueName value =
+        match isValidQueueName value with
+        | true -> Choice2Of2 value
+        | false -> Choice1Of2 { ApiErrorResult.errors = [| $"Invalid queue name '{value}'" |] }
+
+    let getRequest<'a> (ctx: HttpContext) queueId =
         task {
-            if
-                ctx.Request.ContentType <> System.Net.Mime.MediaTypeNames.Application.Json
-                && ctx.Request.ContentType
-                   <> $"{System.Net.Mime.MediaTypeNames.Application.Json}; charset=utf-8"
-            then
+            if isValidQueueName queueId |> not then
+                return Choice1Of2 { ApiErrorResult.errors = [| $"Invalid queue name '{queueId}'" |] }
+            else if isValidContentType ctx |> not then
                 return Choice1Of2 { ApiErrorResult.errors = [| "Invalid content type" |] }
             else
                 try
@@ -25,12 +39,3 @@ module WebApiValidation =
                 with ex ->
                     return Choice1Of2 { ApiErrorResult.errors = [| "Invalid request" |] }
         }
-
-    let validateQueueName value =
-        let isMatch value = 
-            let p = Char.isAlphaNumeric ||>> Char.isIn [| '-'; '_' |]
-            value |> Seq.forall p
-                
-        match isMatch value with
-        | true -> Choice2Of2 value
-        | false -> Choice1Of2 { ApiErrorResult.errors = [|  $"Invalid queue name {value}" |] }
