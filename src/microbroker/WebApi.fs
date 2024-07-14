@@ -39,29 +39,35 @@ module WebApi =
     let getQueueInfo name =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
-                let! q = queueProvider ctx |> queue name
+                match WebApiValidation.validateQueueName name with
+                | Choice1Of2 error -> return! RequestErrors.BAD_REQUEST error next ctx
+                | Choice2Of2 name ->
+                    let! q = queueProvider ctx |> queue name
 
-                let! info = q.GetInfoAsync()
+                    let! info = q.GetInfoAsync()
 
-                return! Successful.ok (info |> json) next ctx
+                    return! Successful.ok (info |> json) next ctx
             }
 
     let getMessage (queueId: string) =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
-                let! q = queueProvider ctx |> queue queueId
+                match WebApiValidation.validateQueueName queueId with
+                | Choice1Of2 error -> return! RequestErrors.BAD_REQUEST error next ctx
+                | Choice2Of2 queueId ->
+                    let! q = queueProvider ctx |> queue queueId
 
-                match! q.GetNextAsync() with
-                | None ->
-                    ctx.SetStatusCode StatusCodes.Status404NotFound
-                    return! next ctx
-                | Some msg -> return! Successful.OK msg next ctx
+                    match! q.GetNextAsync() with
+                    | None ->
+                        ctx.SetStatusCode StatusCodes.Status404NotFound
+                        return! next ctx
+                    | Some msg -> return! Successful.OK msg next ctx
             }
 
     let postMessage (queueId: string) =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
-                match! WebApiValidation.getRequest<QueueMessage> ctx with
+                match! WebApiValidation.getRequest<QueueMessage> ctx queueId with
                 | Choice1Of2 error -> return! RequestErrors.BAD_REQUEST error next ctx
                 | Choice2Of2 msg ->
                     let! q = queueProvider ctx |> queue queueId
@@ -78,7 +84,7 @@ module WebApi =
     let postMessages (queueId: string) =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
-                match! WebApiValidation.getRequest<QueueMessage[]> ctx with
+                match! WebApiValidation.getRequest<QueueMessage[]> ctx queueId with
                 | Choice1Of2 error -> return! RequestErrors.BAD_REQUEST error next ctx
                 | Choice2Of2 msgs ->
                     let qp = queueProvider ctx
@@ -99,53 +105,72 @@ module WebApi =
     let deleteQueue (queueId: string) =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
-                let qp = queueProvider ctx
+                match WebApiValidation.validateQueueName queueId with
+                | Choice1Of2 error -> return! RequestErrors.BAD_REQUEST error next ctx
+                | Choice2Of2 queueId ->
+                    let qp = queueProvider ctx
 
-                let! r = qp.DeleteQueueAsync queueId
+                    let! r = qp.DeleteQueueAsync queueId
 
-                return!
-                    if r then
-                        Successful.NO_CONTENT next ctx
-                    else
-                        ctx.SetStatusCode StatusCodes.Status404NotFound
-                        next ctx
+                    return!
+                        if r then
+                            Successful.NO_CONTENT next ctx
+                        else
+                            ctx.SetStatusCode StatusCodes.Status404NotFound
+                            next ctx
             }
 
     let linkQueues (queueId: string, originQueueId: string) =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
-                try
-                    let qp = queueProvider ctx
-                    let! r = qp.LinkQueuesAsync originQueueId queueId
+                match
+                    (WebApiValidation.validateQueueName queueId, WebApiValidation.validateQueueName originQueueId)
+                with
+                | Choice1Of2 error, _ -> return! RequestErrors.BAD_REQUEST error next ctx
+                | _, Choice1Of2 error -> return! RequestErrors.BAD_REQUEST error next ctx
+                | Choice2Of2 queueId, _ ->
+                    try
+                        let qp = queueProvider ctx
+                        let! r = qp.LinkQueuesAsync originQueueId queueId
 
-                    return! Successful.NO_CONTENT next ctx
-                with :? System.ArgumentException as ex ->
-                    return! RequestErrors.BAD_REQUEST [ ex.Message ] next ctx
+                        return! Successful.NO_CONTENT next ctx
+                    with :? System.ArgumentException as ex ->
+                        return! RequestErrors.BAD_REQUEST [ ex.Message ] next ctx
             }
 
     let getQueueWatchers (queueId: string) =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
-                let qp = queueProvider ctx
+                match WebApiValidation.validateQueueName queueId with
+                | Choice1Of2 error -> return! RequestErrors.BAD_REQUEST error next ctx
+                | Choice2Of2 queueId ->
+                    let qp = queueProvider ctx
 
-                let! qs = qp.GetLinkedQueues queueId
+                    let! qs = qp.GetLinkedQueues queueId
 
-                let r = qs |> Seq.map _.Name |> Seq.sortBy id |> Array.ofSeq
+                    let r = qs |> Seq.map _.Name |> Seq.sortBy id |> Array.ofSeq
 
-                return! Successful.OK r next ctx
+                    return! Successful.OK r next ctx
             }
 
     let deleteQueueWatcher (destinationQueueId: string, originQueueId: string) =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
-                let qp = queueProvider ctx
+                match
+                    (WebApiValidation.validateQueueName destinationQueueId,
+                     WebApiValidation.validateQueueName originQueueId)
+                with
+                | Choice1Of2 error, _ -> return! RequestErrors.BAD_REQUEST error next ctx
+                | _, Choice1Of2 error -> return! RequestErrors.BAD_REQUEST error next ctx
+                | Choice2Of2 queueId, _ ->
+                    let qp = queueProvider ctx
 
-                let! r = qp.DeleteLinkedQueuesAsync originQueueId destinationQueueId
+                    let! r = qp.DeleteLinkedQueuesAsync originQueueId destinationQueueId
 
-                return!
-                    if r then
-                        Successful.NO_CONTENT next ctx
-                    else
-                        ctx.SetStatusCode StatusCodes.Status404NotFound
-                        next ctx
+                    return!
+                        if r then
+                            Successful.NO_CONTENT next ctx
+                        else
+                            ctx.SetStatusCode StatusCodes.Status404NotFound
+                            next ctx
             }
