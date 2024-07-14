@@ -23,18 +23,19 @@ module WebApiValidation =
 
     let getRequest<'a> (ctx: HttpContext) queueId =
         task {
-            if isValidQueueName queueId |> not then
-                return Choice1Of2 { ApiErrorResult.errors = [| $"Invalid queue name '{queueId}'" |] }
-            else if isValidContentType ctx |> not then
-                return Choice1Of2 { ApiErrorResult.errors = [| "Invalid content type" |] }
-            else
-                try
-                    let! msg = ctx.BindModelAsync<'a>()
+            match validateQueueName queueId with
+            | Choice1Of2 error -> return Choice1Of2 error
+            | _ ->
+                if isValidContentType ctx |> not then
+                    return Choice1Of2 { ApiErrorResult.errors = [| "Invalid content type" |] }
+                else
+                    try
+                        let! msg = ctx.BindModelAsync<'a>()
 
-                    return
-                        match System.Object.ReferenceEquals(msg, null) with
-                        | false -> Choice2Of2 msg
-                        | true -> Choice1Of2 { ApiErrorResult.errors = [| "Invalid request" |] }
-                with ex ->
-                    return Choice1Of2 { ApiErrorResult.errors = [| "Invalid request" |] }
+                        return
+                            match System.Object.ReferenceEquals(msg, null) with
+                            | false -> Choice2Of2 msg
+                            | true -> Choice1Of2 { ApiErrorResult.errors = [| "Invalid request" |] }
+                    with ex ->
+                        return Choice1Of2 { ApiErrorResult.errors = [| "Invalid request" |] }
         }
