@@ -7,20 +7,19 @@ open Microsoft.AspNetCore.Http
 module WebApiValidation =
 
     let validContentTypes =
-        [ System.Net.Mime.MediaTypeNames.Application.Json
-          $"{System.Net.Mime.MediaTypeNames.Application.Json}; charset=utf-8" ]
+        let json = System.Net.Mime.MediaTypeNames.Application.Json
+        [ json; $"{json}; charset=utf-8" ]
 
     let isValidQueueName value =
-        let p = Char.isAlphaNumeric ||>> Char.isIn [| '-'; '_' |]
-        value |> Seq.forall p
+        value |> Seq.forall (Char.isAlphaNumeric ||>> Char.isIn [| '-'; '_' |])
 
     let isValidContentType (ctx: HttpContext) =
         validContentTypes |> Seq.contains ctx.Request.ContentType
 
-    let validateQueueName value =
-        match isValidQueueName value with
-        | true -> Choice2Of2 value
-        | false -> Choice1Of2 { ApiErrorResult.errors = [| $"Invalid queue name '{value}'" |] }
+    let validateQueueName queueId =
+        match isValidQueueName queueId with
+        | true -> Choice2Of2 queueId
+        | false -> Choice1Of2 { ApiErrorResult.errors = [| $"Invalid queue name '{queueId}'" |] }
 
     let getRequest<'a> (ctx: HttpContext) queueId =
         task {
