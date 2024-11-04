@@ -123,7 +123,7 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
             try
                 $"Starting TTA move for queue [{name}]..." |> log.LogTrace
                 let deletions = moveTtaMessagesToActive().Result
-                $"[{deletions}] TTA messages moved for queue [{name}]." |> log.LogInformation
+                $"[{deletions}] TTA messages moved for queue [{name}]." |> log.LogTrace
             with ex ->
                 log.LogError(ex, ex.Message)
 
@@ -210,8 +210,7 @@ type QueueMessageRelayActor(logFactory: ILoggerFactory, queueProvider: IQueuePro
 
                     let destinations = destinations |> Seq.map _.Name |> Strings.join ", "
 
-                    $"Forwarded [{messages.Length}] messaages from [{origin}] to queues [{destinations}]."
-                    |> log.LogInformation
+                    $"Forwarded [{messages.Length}] messaages from [{origin}] to queues [{destinations}]." |> log.LogTrace
 
                     return true
                 with ex ->
