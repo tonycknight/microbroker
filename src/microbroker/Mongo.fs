@@ -67,6 +67,18 @@ module Mongo =
 
         collection
 
+    let setTtlIndex (field: string) (ttl: TimeSpan) (collection: IMongoCollection<'a>) =
+        let json = sprintf "{'%s': 1 }" field
+        let def = IndexKeysDefinition<'a>.op_Implicit (json)
+
+        let opt = new CreateIndexOptions()
+        opt.ExpireAfter <- Nullable.op_Implicit (ttl)
+        let model = CreateIndexModel<'a>(def, opt)
+
+        collection.Indexes.CreateOne(model) |> ignore
+
+        collection
+
     let getCollection colName (db: IMongoDatabase) = db.GetCollection(colName)
 
     let initCollection indexPath dbName collectionName connectionString =
