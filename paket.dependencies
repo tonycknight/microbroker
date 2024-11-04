@@ -11,6 +11,11 @@ group Main
     nuget Newtonsoft.Json
     nuget Microsoft.Extensions.Caching.Memory
     nuget Microsoft.IO.RecyclableMemoryStream 2.3.2
+    nuget OpenTelemetry.Extensions.Hosting
+    nuget OpenTelemetry.Exporter.OpenTelemetryProtocol
+    nuget OpenTelemetry.Instrumentation.AspNetCore
+    nuget OpenTelemetry.Instrumentation.Runtime
+    nuget OpenTelemetry.Exporter.Console
     nuget System.Text.Json
 
 // [ FAKE GROUP ]
