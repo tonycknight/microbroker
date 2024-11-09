@@ -111,7 +111,8 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
                     |> Seq.map (fun m ->
                         { m with
                             _id = new MongoDB.Bson.ObjectId(Guid.NewGuid().ToString().Replace("-", "")) })
-                    |> Mongo.pushToQueue activeQueueMongoCol QueueMessageData.toBsonDoc
+                    |> Seq.map QueueMessageData.toBsonDoc
+                    |> Mongo.pushToQueue activeQueueMongoCol
 
                 let ids = batch |> Seq.map (fun m -> $"ObjectId('{m._id}')") |> Strings.join ", "
                 let predicate = ids |> sprintf "{ '_id':  { $in: [%s] } }"
@@ -182,7 +183,7 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
 
                 try
                     let messages = [| setExpiry message |]
-                    do! messages |> Mongo.pushToQueue col QueueMessage.toBsonDoc
+                    do! messages |> Seq.map QueueMessage.toBsonDoc |> Mongo.pushToQueue col 
 
                     if relayMessages then
                         relay.Relay name messages

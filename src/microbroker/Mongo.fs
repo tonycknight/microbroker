@@ -149,9 +149,9 @@ module Mongo =
         }
 
     
-    let pushToQueue<'a> (collection: IMongoCollection<BsonDocument>) (map: 'a -> BsonDocument) (values: seq<'a>) =
+    let pushToQueue (collection: IMongoCollection<BsonDocument>) (values: seq<BsonDocument>) =
         task {
-            let values = values |> Seq.map map |> Array.ofSeq
+            let values = values |> Array.ofSeq
 
             if values.Length > 0 then
                 let opts = new InsertManyOptions()
