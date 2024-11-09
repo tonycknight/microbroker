@@ -45,6 +45,15 @@ type QueueMessageData =
           active = data.active
           expiry = data.expiry }
 
+    static member toBsonDoc(data: QueueMessageData) =
+        let doc = new MongoDB.Bson.BsonDocument()
+        doc.["messageType"] <- data.messageType |> MongoDB.Bson.BsonString.Create
+        doc.["content"] <- data.content |> MongoDB.Bson.BsonString.Create
+        doc.["created"] <- data.created |> MongoDB.Bson.BsonDateTime.Create
+        doc.["active"] <- data.active |> MongoDB.Bson.BsonDateTime.Create
+        doc.["expiry"] <- data.expiry |> MongoDB.Bson.BsonDateTime.Create
+        doc
+
 [<CLIMutable>]
 type LinkedQueue =
     { _id: obj
@@ -101,7 +110,7 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
                     |> Seq.map (fun m ->
                         { m with
                             _id = new MongoDB.Bson.ObjectId(Guid.NewGuid().ToString().Replace("-", "")) })
-                    |> Mongo.pushToQueue activeQueueMongoCol
+                    |> Mongo.pushToQueue activeQueueMongoCol QueueMessageData.toBsonDoc
 
                 let ids = batch |> Seq.map (fun m -> $"ObjectId('{m._id}')") |> Strings.join ", "
                 let predicate = ids |> sprintf "{ '_id':  { $in: [%s] } }"
@@ -172,7 +181,7 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
 
                 try
                     let messages = [| setExpiry message |]
-                    do! messages |> Mongo.pushToQueue col
+                    do! messages |> Mongo.pushToQueue col QueueMessage.toBsonDoc
 
                     if relayMessages then
                         relay.Relay name messages

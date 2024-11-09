@@ -148,9 +148,10 @@ module Mongo =
                 | _ -> r |> MongoBson.toObject<'a> |> Some
         }
 
-    let pushToQueue<'a> (collection: IMongoCollection<BsonDocument>) (values: seq<'a>) =
+    
+    let pushToQueue<'a> (collection: IMongoCollection<BsonDocument>) (map: 'a -> BsonDocument) (values: seq<'a>) =
         task {
-            let values = values |> Seq.map MongoBson.ofObject |> Array.ofSeq
+            let values = values |> Seq.map map |> Array.ofSeq
 
             if values.Length > 0 then
                 let opts = new InsertManyOptions()
@@ -160,10 +161,10 @@ module Mongo =
 
     let pullFromTta<'a> (collection: IMongoCollection<BsonDocument>) (active: DateTimeOffset) =
         task {
-            let active = active.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss+00:00")
-
+            let active = active.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss+00:00") |> sprintf "ISODate('%s')"
+            
             let filter =
-                $"{{ 'active':  {{ $lte: '{active}' }} }}"
+                $"{{ 'active':  {{ $lte: {active} }} }}"
                 |> MongoBson.ofJson
                 |> FilterDefinition.op_Implicit
 
