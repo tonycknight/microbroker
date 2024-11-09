@@ -93,6 +93,7 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
 
     let activeQueueMongoCol =
         Mongo.initCollection "" config.mongoDbName activeQueueCollectionName config.mongoConnection
+        |> Mongo.setTtlIndex "expiry" TimeSpan.Zero
 
     let ttaQueueMongoCol =
         Mongo.initCollection "active" config.mongoDbName ttaQueueCollectionName config.mongoConnection
