@@ -18,8 +18,6 @@ type AppConfiguration =
 module Configuration =
     let create (sp: System.IServiceProvider) =
         let config =
-            sp
-                .GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>()
-                .Get<AppConfiguration>()
+            sp.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>().Get<AppConfiguration>()
 
         config
