@@ -1,15 +1,15 @@
 name: Build & Release
 
+permissions:
+  actions: read
+  pull-requests: write
+  security-events: write
+  contents: write
+  checks: write
+
 on:
   push:
   workflow_dispatch:
-
-permissions:
-  checks: write
-  pull-requests: write
-  contents: read
-  packages: write
-  
 
 env:
   build-version-number: 0.1.${{ github.run_number }}  
@@ -27,7 +27,13 @@ jobs:
         uses: actions/setup-dotnet@v4
               
       - name: pkgchk
-        uses: tonycknight/pkgchk-action@v1.0.19
+        uses: tonycknight/pkgchk-action@v1
+        with: 
+          scan-issues: true
+          scan-upgrades: true
+          vulnerable: true
+          deprecated: true
+          transitives: true
     
   
   build:

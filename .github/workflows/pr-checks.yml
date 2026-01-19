@@ -1,14 +1,16 @@
 name: Pull Request checks
 
+permissions:
+  actions: read
+  pull-requests: write
+  security-events: write
+  contents: write
+  checks: write
+  issues: write
+
 on:
   pull_request:
   
-permissions:
-  checks: write
-  pull-requests: write
-  contents: read
-  packages: write
-
 jobs:  
   size-label:
     name: Set change size
@@ -37,9 +39,6 @@ jobs:
         name: Set label
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
-
-  sca:
-    uses: ./.github/workflows/sca.yml
 
   check-style-rules:
     runs-on: ubuntu-latest
