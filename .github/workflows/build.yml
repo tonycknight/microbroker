@@ -89,7 +89,7 @@ jobs:
           name: Full_code_coverage_report
           path: ./publish/codecoverage/*.*
                     
-      - name: Unit test results
+      - name: Report Unit test results
         uses: dorny/test-reporter@v2
         if: always()
         with:
@@ -115,7 +115,7 @@ jobs:
           report_name: Code coverage summary
 
   acceptance-tests:
-    name: Run acceptance tests
+    name: Run Acceptance tests
     runs-on: ubuntu-latest
 
     steps:
@@ -152,11 +152,11 @@ jobs:
         run: |
           docker stop microbroker-acceptancetests
 
-      - name: Acceptance test results
+      - name: Report Acceptance test results
         uses: dorny/test-reporter@v2
         if: always()
         with:
-          name: acceptance test results
+          name: Acceptance test results
           path: ${{ github.workspace }}/tests/*.tests.acceptance/TestResults/test_results.trx
           reporter: dotnet-trx
           token: ${{ secrets.GITHUB_TOKEN }}
