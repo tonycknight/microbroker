@@ -45,7 +45,7 @@ module Mongo =
         | x -> $"""{connectionString |> Strings.appendIfMissing "/"}{dbName}"""
 
     let initDb dbName (connection: string) =
-        let client = MongoClient(connection)
+        let client = new MongoClient(connection)
         let db = client.GetDatabase(dbName)
 
         try
