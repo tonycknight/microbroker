@@ -124,14 +124,19 @@ jobs:
       - name: Build docker image
         run: docker build -f Dockerfile -t microbroker:localbuild --build-arg BuildVersion=0.0.0-localbuild .
 
+      - name: Set docker network
+        run: |
+          echo "docker-network=microbroker-acceptance-tests-${{ github.run_number }}" >> $GITHUB_ENV
+
       - name: Start MongoDB
         uses: supercharge/mongodb-github-action@1.12.1
         with:
           mongodb-version: latest # ${{ matrix.mongodb-version }}
+          docker-network: ${{ env.microbroker-acceptance-tests }}
 
       - name: Start microbroker
         run: |
-          docker run --name microbroker-acceptancetests --detach -it --rm -p 8080:8080 microbroker:localbuild
+          docker run --name microbroker-acceptancetests --detach --network=${{ env.microbroker-acceptance-tests }} -it --rm -p 8080:8080 microbroker:localbuild
 
       - name: Run Tests
         run: |
