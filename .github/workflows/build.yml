@@ -67,7 +67,7 @@ jobs:
       - name: Tests
         run: |
           dotnet tool restore
-          dotnet test -c Debug --filter FullyQualifiedName~Unit --logger "trx;LogFileName=test_results.trx" /p:CollectCoverage=true /p:CoverletOutput=./TestResults/coverage.info /p:CoverletOutputFormat=cobertura
+          dotnet test -c Debug --filter FullyQualifiedName~unit --logger "trx;LogFileName=test_results.trx" /p:CollectCoverage=true /p:CoverletOutput=./TestResults/coverage.info /p:CoverletOutputFormat=cobertura
 
       - name: Consolidate code coverage
         run: |
@@ -135,7 +135,7 @@ jobs:
 
       - name: Run Tests
         run: |
-          dotnet test --filter FullyQualifiedName~Acceptance
+          dotnet test --filter FullyQualifiedName~acceptance
 
       - name: Stop microbroker
         if: always()
