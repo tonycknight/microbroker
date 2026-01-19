@@ -1,7 +1,0 @@
-group Main
-FSharp.Core
-Giraffe
-Microsoft.Extensions.Caching.Memory
-Microsoft.IO.RecyclableMemoryStream
-MongoDB.Driver
-System.Text.Json
