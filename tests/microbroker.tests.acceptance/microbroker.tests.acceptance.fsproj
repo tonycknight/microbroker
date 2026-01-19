@@ -6,14 +6,22 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Tests.fs" />
+    <Compile Include="TestDataGenerators.fs" />
+    <Compile Include="TestUtils.fs" />
+    <Compile Include="MetadataApiTests.fs" />
+    <Compile Include="ApiTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="FsCheck.Xunit" Version="3.3.2" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\microbroker\microbroker.fsproj" />
   </ItemGroup>
 
 </Project>

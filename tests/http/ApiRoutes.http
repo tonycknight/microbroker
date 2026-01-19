@@ -1,3 +1,8 @@
+### Get heartbeat
+GET http://localhost:8080/heartbeat/
+Accept: application/json
+Accept-Encoding: gzip
+
 ### Get queues
 GET http://localhost:8080/queues/
 Accept: application/json
