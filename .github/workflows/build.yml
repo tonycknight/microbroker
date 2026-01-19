@@ -11,13 +11,6 @@ on:
   push:
   workflow_dispatch:
 
-permissions:
-  checks: write
-  pull-requests: write
-  contents: read
-  packages: write
-  
-
 env:
   build-version-number: 0.1.${{ github.run_number }}  
   docker-image-name: ghcr.io/tonycknight/microbroker
