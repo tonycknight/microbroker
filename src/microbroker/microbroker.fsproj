@@ -20,10 +20,10 @@
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Giraffe" Version="6.3.0" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.2" />
-    <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="2.3.2" />
-    <PackageReference Include="MongoDB.Driver" Version="2.27.0" />
+    <PackageReference Include="Giraffe" Version="8.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.2" />
+    <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
+    <PackageReference Include="MongoDB.Driver" Version="3.6.0" />
     <PackageReference Include="System.Text.Json" Version="10.0.2" />
   </ItemGroup>  
 </Project>
