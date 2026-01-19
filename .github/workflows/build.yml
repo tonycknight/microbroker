@@ -145,12 +145,22 @@ jobs:
 
       - name: Run Tests
         run: |
-          dotnet test --filter FullyQualifiedName~acceptance
+          dotnet test --filter FullyQualifiedName~acceptance /p:CollectCoverage=true /p:CoverletOutput=./TestResults/coverage.info /p:CoverletOutputFormat=cobertura --logger "trx;LogFileName=test_results.trx" 
 
       - name: Stop microbroker
         if: always()
         run: |
           docker stop microbroker-acceptancetests
+
+      - name: Acceptance test results
+        uses: dorny/test-reporter@v2
+        if: always()
+        with:
+          name: acceptance test results
+          path: ${{ github.workspace }}/tests/*.tests.acceptance/TestResults/test_results.trx
+          reporter: dotnet-trx
+          token: ${{ secrets.GITHUB_TOKEN }}
+
 
   build-publish-docker-image:
     name: Build & Publish docker image
