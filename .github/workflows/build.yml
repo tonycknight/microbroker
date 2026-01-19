@@ -124,9 +124,12 @@ jobs:
       - name: Build docker image
         run: docker build -f Dockerfile -t microbroker:localbuild --build-arg BuildVersion=0.0.0-localbuild .
 
-      - name: Set docker network
+      - name: Set docker network name
         run: |
           echo "docker-network=microbroker-acceptance-tests-${{ github.run_number }}" >> $GITHUB_ENV
+          
+      - name: Create docker network
+        run: |
           docker network create -d bridge ${{ env.docker-network }}
 
       - name: Start MongoDB
