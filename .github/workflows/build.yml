@@ -131,7 +131,7 @@ jobs:
 
       - name: Start microbroker
         run: |
-          docker run --name microbroker-acceptancetests --detach --it --rm -p 8080:8080 microbroker:localbuild
+          docker run --name microbroker-acceptancetests --detach -it --rm -p 8080:8080 microbroker:localbuild
 
       - name: Run Tests
         run: |
