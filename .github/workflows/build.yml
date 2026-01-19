@@ -132,11 +132,11 @@ jobs:
         uses: supercharge/mongodb-github-action@1.12.1
         with:
           mongodb-version: latest # ${{ matrix.mongodb-version }}
-          docker-network: ${{ env.microbroker-acceptance-tests }}
+          docker-network: ${{ env.docker-network }}
 
       - name: Start microbroker
         run: |
-          docker run --name microbroker-acceptancetests --detach --network=${{ env.microbroker-acceptance-tests }} -it --rm -p 8080:8080 microbroker:localbuild
+          docker run --name microbroker-acceptancetests --detach --network=${{ env.docker-network }} -it --rm -p 8080:8080 microbroker:localbuild
 
       - name: Run Tests
         run: |
