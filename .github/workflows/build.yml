@@ -54,7 +54,7 @@ jobs:
             dotnet tool restore
             dotnet build -c Release
 
-  unit=tests:
+  unit-tests:
     name: Run Unit Tests
     runs-on: ubuntu-latest
 
@@ -78,7 +78,7 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: Unit_tests_results
+          name: unit-tests_results
           path: |
             ./tests/**/TestResults/*
             
@@ -144,7 +144,7 @@ jobs:
   build-publish-docker-image:
     name: Build & Publish docker image
     runs-on: ubuntu-latest
-    needs:   [ build, unit=tests, sca, acceptance-tests ]
+    needs:   [ build, unit-tests, sca, acceptance-tests ]
 
     steps:
       - uses: actions/checkout@v6
