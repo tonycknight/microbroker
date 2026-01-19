@@ -137,10 +137,11 @@ jobs:
         with:
           mongodb-version: latest # ${{ matrix.mongodb-version }}
           docker-network: ${{ env.docker-network }}
+          docker-network-alias: mongodb
 
       - name: Start microbroker
         run: |
-          docker run --name microbroker-acceptancetests --detach --network=${{ env.docker-network }} -it --rm -p 8080:8080 microbroker:localbuild
+          docker run --name microbroker-acceptancetests --detach --network=${{ env.docker-network }} -it --rm -p 8080:8080 microbroker:localbuild --mongoConnection=mongodb://mongodb:27017
 
       - name: Run Tests
         run: |
