@@ -1,6 +1,6 @@
 param (
     [PArameter(Mandatory=$false)]
-    [string]$ConnectionString = "mongodb://localhost:27017",
+    [string]$ConnectionString = "mongodb://host.docker.internal:27017",
     
     [PArameter(Mandatory=$false)]
     [string]$DbName = "microbroker",
