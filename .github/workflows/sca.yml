@@ -1,5 +1,12 @@
 name: "Scheduled SCA"
 
+permissions:
+  actions: read
+  pull-requests: write
+  security-events: write
+  contents: write
+  checks: write
+
 on:
   workflow_dispatch:
   workflow_call:
@@ -10,13 +17,6 @@ on:
     secrets:
       token:
         required: false
-  schedule:
-    - cron: '1 0 * * *'
-
-permissions:
-  checks: write
-  contents: read
-  pull-requests: write
 
 jobs:
   sca:
