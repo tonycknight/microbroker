@@ -8,7 +8,6 @@
     <Content Include="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <None Include="paket.references" />
     <Compile Include="Utils.fs" />
     <Compile Include="Models.fs" />
     <Compile Include="Mongo.fs" />

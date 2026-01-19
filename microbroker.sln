@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.8.34330.188
+# Visual Studio Version 18
+VisualStudioVersion = 18.2.11408.102 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "microbroker", "src\microbroker\microbroker.fsproj", "{F4CB982D-4A69-45E8-80FF-D95B969FB7A5}"
 EndProject
@@ -10,7 +10,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{D9BD7922-B42C-4341-9060-A609953866BA}"
 	ProjectSection(SolutionItems) = preProject
 		.github\workflows\build.yml = .github\workflows\build.yml
-		paket.dependencies = paket.dependencies
 		.github\workflows\pr-checks.yml = .github\workflows\pr-checks.yml
 		.github\workflows\sca.yml = .github\workflows\sca.yml
 	EndProjectSection

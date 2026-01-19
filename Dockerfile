@@ -18,7 +18,6 @@ RUN dotnet restore "src/microbroker/microbroker.fsproj"
 COPY . .
 WORKDIR "/src/src/microbroker"
 RUN dotnet tool restore
-RUN dotnet paket restore
 RUN dotnet build "microbroker.fsproj" -c Release -o /app/build /p:AssemblyInformationalVersion=${BuildVersion} /p:AssemblyFileVersion=${BuildVersion}
 
 FROM build AS publish
