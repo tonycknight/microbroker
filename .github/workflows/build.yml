@@ -151,7 +151,6 @@ jobs:
         if: always()
         run: |
           docker stop microbroker-acceptancetests
-          docker network rm ${{ env.docker-network }} --force
 
   build-publish-docker-image:
     name: Build & Publish docker image
