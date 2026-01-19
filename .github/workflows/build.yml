@@ -54,8 +54,8 @@ jobs:
             dotnet tool restore
             dotnet build -c Release
 
-  tests:
-    name: Tests
+  unit=tests:
+    name: Run Unit Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -144,7 +144,7 @@ jobs:
   build-publish-docker-image:
     name: Build & Publish docker image
     runs-on: ubuntu-latest
-    needs:   [ build, tests, sca, acceptance-tests ]
+    needs:   [ build, unit=tests, sca, acceptance-tests ]
 
     steps:
       - uses: actions/checkout@v6
