@@ -10,8 +10,9 @@ module WebApiValidation =
         let json = System.Net.Mime.MediaTypeNames.Application.Json
         [ json; $"{json}; charset=utf-8" ]
 
-    let isValidQueueName value =
-        value |> Seq.forall (Char.isAlphaNumeric ||>> Char.isIn [| '-'; '_' |])
+    let isValidQueueName (value: string) =
+        value.Length > 0
+        && value |> Seq.forall (Char.isAlphaNumeric ||>> Char.isIn [| '-'; '_' |])
 
     let isValidContentType (ctx: HttpContext) =
         validContentTypes |> Seq.contains ctx.Request.ContentType
