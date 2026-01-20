@@ -12,10 +12,7 @@ module TestUtils =
 [<AutoOpen>]
 module TestCombinators =
 
-    let dateTimeOffsetEqual (x: DateTimeOffset) (y: DateTimeOffset) =
-        x.Year = y.Year
-        && x.Month = y.Month
-        && x.Day = y.Day
-        && x.Hour = y.Hour
-        && x.Minute = y.Minute
-        && x.Second = y.Second
+    let dateTimeOffsetWithLimits (x: DateTimeOffset) (y: DateTimeOffset) =
+        let delta = Math.Abs((x - y).TotalMilliseconds)
+
+        delta < (1000.)

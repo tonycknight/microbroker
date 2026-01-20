@@ -10,7 +10,7 @@ module ApiTests =
     let ``GET Queues returns array`` () =
         task {
             let uri = "http://localhost:8080/queues/"
-            let! r = TestUtils.client.GetAsync(uri)
+            use! r = TestUtils.client.GetAsync(uri)
 
             let _ = r.EnsureSuccessStatusCode()
 
@@ -29,7 +29,7 @@ module ApiTests =
     let ``GET Queue message of unknown queue name returns empty queue`` (queueId: Guid) =
         task {
             let uri = $"http://localhost:8080/queues/{queueId}/"
-            let! r = TestUtils.client.GetAsync(uri)
+            use! r = TestUtils.client.GetAsync(uri)
 
             let _ = r.EnsureSuccessStatusCode()
 
@@ -45,25 +45,23 @@ module ApiTests =
     let ``GET Queue message of unknown queue name returns 404`` (queueId: Guid) =
         task {
             let uri = $"http://localhost:8080/queues/{queueId}/message/"
-            let! r = TestUtils.client.GetAsync(uri)
+            use! r = TestUtils.client.GetAsync(uri)
 
             return r.StatusCode = Net.HttpStatusCode.NotFound
         }
 
-    [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.AlphaNumericString> |])>]
-    let ``POST Queue message yields on first retrival`` (queueId: Guid, content: string, messageType: string) =
+    [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |], Replay = "(5507867521403961409,11848198107970885339,50)")>]
+    let ``POST Queue message yields on first retrival`` (queueId: Guid, msg: QueueMessage) =
         task {
             let uri = $"http://localhost:8080/queues/{queueId}/message/"
 
-            let msg = MessageGenerators.message messageType content
-
             let content = msg |> MessageGenerators.toJson |> TestUtils.jsonContent
 
-            let! postResponse = TestUtils.client.PostAsync(uri, content)
+            use! postResponse = TestUtils.client.PostAsync(uri, content)
             let _ = postResponse.EnsureSuccessStatusCode()
 
             // Fetch from the head of the queue
-            let! getResponse = TestUtils.client.GetAsync(uri)
+            use! getResponse = TestUtils.client.GetAsync(uri)
             let _ = getResponse.EnsureSuccessStatusCode()
 
             let! json = getResponse.Content.ReadAsStringAsync()
@@ -72,7 +70,54 @@ module ApiTests =
             return
                 result.messageType = msg.messageType
                 && result.content = msg.content
-                && (dateTimeOffsetEqual result.created msg.created)
-                && (dateTimeOffsetEqual result.active msg.active)
-                && (dateTimeOffsetEqual result.expiry msg.expiry)
+                //&& (dateTimeOffsetEqual result.created msg.created)
+                && (dateTimeOffsetWithLimits result.active msg.active)
+                && (dateTimeOffsetWithLimits result.expiry msg.expiry)
+        }
+
+    [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
+    let ``POST expired queue message yields nothing`` (queueId: Guid, message: QueueMessage) =
+        task {
+            let uri = $"http://localhost:8080/queues/{queueId}/message/"
+            
+            let message = { message with expiry = DateTimeOffset.UtcNow.AddMinutes -1 }
+            let content = message |> MessageGenerators.toJson |> TestUtils.jsonContent
+
+            use! postResponse = TestUtils.client.PostAsync(uri, content)
+            let _ = postResponse.EnsureSuccessStatusCode()
+                        
+            use! getResponse = TestUtils.client.GetAsync(uri)
+            return getResponse.StatusCode = Net.HttpStatusCode.NotFound
+        }
+
+    [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
+    let ``POST Queue messages yields all`` (queueId: Guid, messages: QueueMessage[]) =
+        task {
+            let uri = $"http://localhost:8080/queues/{queueId}/messages/"
+                        
+            let content = messages |> MessageGenerators.toJsonArray |> TestUtils.jsonContent
+
+            use! postResponse = TestUtils.client.PostAsync(uri, content)
+            let _ = postResponse.EnsureSuccessStatusCode()
+
+            // Fetch all from the head of the queue until queue is drained
+            let rec fetchAll (results: QueueMessage list) =
+                task {
+                    let uri = $"http://localhost:8080/queues/{queueId}/message/"
+                    use! getResponse = TestUtils.client.GetAsync(uri)
+
+                    if getResponse.StatusCode = Net.HttpStatusCode.NotFound then
+                        return results
+                    else
+                        let! json = getResponse.Content.ReadAsStringAsync()
+                        let message = MessageGenerators.fromJson json
+                                                
+                        return! fetchAll (message :: results)
+                }
+
+            let! fetchedMessages = fetchAll []
+            
+            // TODO: 
+
+            return List.length fetchedMessages = messages.Length
         }

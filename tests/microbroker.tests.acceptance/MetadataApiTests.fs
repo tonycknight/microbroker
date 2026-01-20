@@ -9,7 +9,7 @@ module MetadataApiTests =
     let ``GET Heartbeat returns OK`` () =
         task {
             let uri = "http://localhost:8080/heartbeat/"
-            let! response = TestUtils.client.GetAsync(uri)
+            use! response = TestUtils.client.GetAsync(uri)
 
             let _ = response.EnsureSuccessStatusCode()
 
