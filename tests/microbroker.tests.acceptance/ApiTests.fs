@@ -93,6 +93,21 @@ module ApiTests =
 
     [<Property(MaxTest = 100, Arbitrary = [| typeof<Arbitraries.QueueMessages> |], Replay = "(2451959626271385719,9541577365501899249)")>]
     let ``POST Queue messages yields all`` (queueId: Guid, messages: QueueMessage[]) =
+        
+        let rec fetchAll (results: QueueMessage list) =
+            task {
+                let uri = $"http://localhost:8080/queues/{queueId}/message/"
+                use! getResponse = TestUtils.client.GetAsync(uri)
+
+                if getResponse.StatusCode = Net.HttpStatusCode.NotFound then
+                    return results
+                else
+                    let! json = getResponse.Content.ReadAsStringAsync()
+                    let message = MessageGenerators.fromJson json
+                                                
+                    return! fetchAll (message :: results)
+            }
+
         task {
             let uri = $"http://localhost:8080/queues/{queueId}/messages/"
                         
@@ -100,21 +115,6 @@ module ApiTests =
 
             use! postResponse = TestUtils.client.PostAsync(uri, content)
             let _ = postResponse.EnsureSuccessStatusCode()
-
-            // Fetch all from the head of the queue until queue is drained
-            let rec fetchAll (results: QueueMessage list) =
-                task {
-                    let uri = $"http://localhost:8080/queues/{queueId}/message/"
-                    use! getResponse = TestUtils.client.GetAsync(uri)
-
-                    if getResponse.StatusCode = Net.HttpStatusCode.NotFound then
-                        return results
-                    else
-                        let! json = getResponse.Content.ReadAsStringAsync()
-                        let message = MessageGenerators.fromJson json
-                                                
-                        return! fetchAll (message :: results)
-                }
 
             let! fetchedMessages = fetchAll []
             
