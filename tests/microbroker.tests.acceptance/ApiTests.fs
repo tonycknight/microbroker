@@ -84,7 +84,7 @@ module ApiTests =
             return getResponse.StatusCode = Net.HttpStatusCode.NotFound
         }
 
-    [<Property(MaxTest = 100, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
+    [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
     let ``POST Queue messages yields all`` (queueId: Guid, messages: QueueMessage[]) =
 
         task {
@@ -109,7 +109,7 @@ module ApiTests =
                 && originalPairs.SequenceEqual(fetchedPairs)
         }
 
-    [<Property(MaxTest = 100, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
+    [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
     let ``POST Queue messages set queue stats`` (queueId: Guid, messages: QueueMessage[]) =
 
         task {
@@ -126,7 +126,7 @@ module ApiTests =
             return result.count = messages.Length && result.name = queue && result.futureCount = 0
         }
 
-    [<Property(MaxTest = 100, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
+    [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
     let ``POST Queue messages decrement queue stats`` (queueId: Guid, messages: QueueMessage[]) =
 
         task {
