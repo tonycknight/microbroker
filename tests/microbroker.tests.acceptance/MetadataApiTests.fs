@@ -1,0 +1,21 @@
+namespace microbroker.tests.acceptance
+
+open Newtonsoft.Json
+open FsCheck.Xunit
+
+module MetadataApiTests =
+
+    [<Property(MaxTest = 1)>]
+    let ``GET Heartbeat returns OK`` () =
+        task {
+            let uri = "http://localhost:8080/heartbeat/"
+            use! response = TestUtils.client.GetAsync(uri)
+
+            let _ = response.EnsureSuccessStatusCode()
+
+            let! json = response.Content.ReadAsStringAsync()
+
+            let result = JsonConvert.DeserializeObject<string[]>(json)
+
+            return result |> Array.head = "OK"
+        }
