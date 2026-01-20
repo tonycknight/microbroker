@@ -7,10 +7,13 @@ open microbroker
 
 module ApiTests =
 
+    [<Literal>]
+    let host = "http://localhost:8080"
+
     [<Property(MaxTest = 1)>]
     let ``GET Queues returns array`` () =
         task {
-            let uri = "http://localhost:8080/queues/"
+            let uri = $"{host}/queues/"
             use! r = TestUtils.client.GetAsync(uri)
 
             let _ = r.EnsureSuccessStatusCode()
@@ -29,7 +32,7 @@ module ApiTests =
     [<Property(MaxTest = 10)>]
     let ``GET Queue message of unknown queue name returns empty queue`` (queueId: Guid) =
         task {
-            let uri = $"http://localhost:8080/queues/{queueId}/"
+            let uri = $"{host}/queues/{queueId}/"
             use! r = TestUtils.client.GetAsync(uri)
 
             let _ = r.EnsureSuccessStatusCode()
@@ -45,7 +48,7 @@ module ApiTests =
     [<Property(MaxTest = 10)>]
     let ``GET Queue message of unknown queue name returns 404`` (queueId: Guid) =
         task {
-            let uri = $"http://localhost:8080/queues/{queueId}/message/"
+            let uri = $"{host}/queues/{queueId}/message/"
             use! r = TestUtils.client.GetAsync(uri)
 
             return r.StatusCode = Net.HttpStatusCode.NotFound
@@ -54,7 +57,7 @@ module ApiTests =
     [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
     let ``POST Queue message yields on first retrival`` (queueId: Guid, msg: QueueMessage) =
         task {
-            let uri = $"http://localhost:8080/queues/{queueId}/message/"
+            let uri = $"{host}/queues/{queueId}/message/"
 
             let content = msg |> MessageGenerators.toJson |> TestUtils.jsonContent
 
@@ -79,7 +82,7 @@ module ApiTests =
     [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
     let ``POST expired queue message yields nothing`` (queueId: Guid, message: QueueMessage) =
         task {
-            let uri = $"http://localhost:8080/queues/{queueId}/message/"
+            let uri = $"{host}/queues/{queueId}/message/"
 
             let message =
                 { message with
@@ -97,29 +100,16 @@ module ApiTests =
     [<Property(MaxTest = 100, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
     let ``POST Queue messages yields all`` (queueId: Guid, messages: QueueMessage[]) =
 
-        let rec fetchAll (results: QueueMessage list) =
-            task {
-                let uri = $"http://localhost:8080/queues/{queueId}/message/"
-                use! getResponse = TestUtils.client.GetAsync(uri)
-
-                if getResponse.StatusCode = Net.HttpStatusCode.NotFound then
-                    return results
-                else
-                    let! json = getResponse.Content.ReadAsStringAsync()
-                    let message = MessageGenerators.fromJson json
-
-                    return! fetchAll (message :: results)
-            }
-
         task {
-            let uri = $"http://localhost:8080/queues/{queueId}/messages/"
+            let queue = queueId.ToString()
+            let uri = $"{host}/queues/{queue}/messages/"
 
             let content = messages |> MessageGenerators.toJsonArray |> TestUtils.jsonContent
 
             use! postResponse = TestUtils.client.PostAsync(uri, content)
             let _ = postResponse.EnsureSuccessStatusCode()
 
-            let! fetchedMessages = fetchAll []
+            let! fetchedMessages = TestUtils.pullAll host queue
 
             let fetchedPairs =
                 fetchedMessages |> Seq.map (fun m -> (m.messageType, m.content)) |> Seq.sort
