@@ -13,14 +13,7 @@ module ApiTests =
     [<Property(MaxTest = 1)>]
     let ``GET Queues returns array`` () =
         task {
-            let uri = $"{host}/queues/"
-            use! r = TestUtils.client.GetAsync(uri)
-
-            let _ = r.EnsureSuccessStatusCode()
-
-            let! json = r.Content.ReadAsStringAsync()
-
-            let result = QueueInfoGenerators.fromJsonArray json
+            let! result = TestUtils.getQueueInfos host
 
             return
                 result |> Array.length >= 0
@@ -32,18 +25,12 @@ module ApiTests =
     [<Property(MaxTest = 10)>]
     let ``GET Queue message of unknown queue name returns empty queue`` (queueId: Guid) =
         task {
-            let uri = $"{host}/queues/{queueId}/"
-            use! r = TestUtils.client.GetAsync(uri)
+            let queue = queueId.ToString()
 
-            let _ = r.EnsureSuccessStatusCode()
-
-            let! json = r.Content.ReadAsStringAsync()
-
-            let result = QueueInfoGenerators.fromJson json
+            let! result = TestUtils.getQueueInfo host queue
 
             return result.name = queueId.ToString() && result.count = 0 && result.futureCount = 0
         }
-
 
     [<Property(MaxTest = 10)>]
     let ``GET Queue message of unknown queue name returns 404`` (queueId: Guid) =
@@ -120,4 +107,22 @@ module ApiTests =
             return
                 List.length fetchedMessages = messages.Length
                 && originalPairs.SequenceEqual(fetchedPairs)
+        }
+
+    [<Property(MaxTest = 100, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
+    let ``POST Queue messages uptick queue stats`` (queueId: Guid, messages: QueueMessage[]) =
+
+        task {
+            let queue = queueId.ToString()
+            let uri = $"{host}/queues/{queue}/messages/"
+
+            let content = messages |> MessageGenerators.toJsonArray |> TestUtils.jsonContent
+
+            use! postResponse = TestUtils.client.PostAsync(uri, content)
+            let _ = postResponse.EnsureSuccessStatusCode()
+
+
+            let! result = TestUtils.getQueueInfo host queue
+
+            return result.count = messages.Length && result.name = queue && result.futureCount = 0
         }

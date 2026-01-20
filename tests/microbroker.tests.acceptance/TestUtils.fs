@@ -27,6 +27,31 @@ module TestUtils =
 
         fetchAll []
 
+    let getQueueInfo (host: string) (queueId: string) =
+        task {
+            let uri = $"{host}/queues/{queueId}/"
+            use! r = client.GetAsync(uri)
+
+            let _ = r.EnsureSuccessStatusCode()
+
+            let! json = r.Content.ReadAsStringAsync()
+
+            return QueueInfoGenerators.fromJson json
+        }
+
+    let getQueueInfos (host: string) =
+        task {
+            let uri = $"{host}/queues/"
+            use! r = client.GetAsync(uri)
+
+            let _ = r.EnsureSuccessStatusCode()
+
+            let! json = r.Content.ReadAsStringAsync()
+
+            return QueueInfoGenerators.fromJsonArray json
+        }
+
+
 [<AutoOpen>]
 module TestCombinators =
 
