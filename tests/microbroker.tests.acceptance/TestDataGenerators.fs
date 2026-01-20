@@ -36,14 +36,22 @@ module Arbitraries =
             ArbMap.defaults |> ArbMap.arbitrary<string> |> Arb.filter isValidString
 
     type QueueMessages =
-           
+
         static member Generate() =
-            let contents = AlphaNumericString.Generate().Generator |> Gen.map (fun s -> $"Content{s}")
-            let messageTypes = AlphaNumericString.Generate().Generator |> Gen.map (fun s -> $"MessageType{s}")
+            let contents =
+                AlphaNumericString.Generate().Generator |> Gen.map (fun s -> $"Content{s}")
+
+            let messageTypes =
+                AlphaNumericString.Generate().Generator |> Gen.map (fun s -> $"MessageType{s}")
+
             let now = DateTimeOffset.UtcNow
-                        
-            contents 
+
+            contents
             |> Gen.zip messageTypes
-            |> Gen.map (fun (mt,c) -> { QueueMessage.messageType = mt; content = c; created = now; expiry = now.AddHours 1; active = now.AddHours -1 })
+            |> Gen.map (fun (mt, c) ->
+                { QueueMessage.messageType = mt
+                  content = c
+                  created = now
+                  expiry = now.AddHours 1
+                  active = now.AddHours -1 })
             |> Arb.fromGen
-            

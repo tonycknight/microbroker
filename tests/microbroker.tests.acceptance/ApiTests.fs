@@ -80,20 +80,23 @@ module ApiTests =
     let ``POST expired queue message yields nothing`` (queueId: Guid, message: QueueMessage) =
         task {
             let uri = $"http://localhost:8080/queues/{queueId}/message/"
-            
-            let message = { message with expiry = DateTimeOffset.UtcNow.AddMinutes -1 }
+
+            let message =
+                { message with
+                    expiry = DateTimeOffset.UtcNow.AddMinutes -1 }
+
             let content = message |> MessageGenerators.toJson |> TestUtils.jsonContent
 
             use! postResponse = TestUtils.client.PostAsync(uri, content)
             let _ = postResponse.EnsureSuccessStatusCode()
-                        
+
             use! getResponse = TestUtils.client.GetAsync(uri)
             return getResponse.StatusCode = Net.HttpStatusCode.NotFound
         }
 
-    [<Property(MaxTest = 100, Arbitrary = [| typeof<Arbitraries.QueueMessages> |], Replay = "(2451959626271385719,9541577365501899249)")>]
+    [<Property(MaxTest = 100, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
     let ``POST Queue messages yields all`` (queueId: Guid, messages: QueueMessage[]) =
-        
+
         let rec fetchAll (results: QueueMessage list) =
             task {
                 let uri = $"http://localhost:8080/queues/{queueId}/message/"
@@ -104,23 +107,27 @@ module ApiTests =
                 else
                     let! json = getResponse.Content.ReadAsStringAsync()
                     let message = MessageGenerators.fromJson json
-                                                
+
                     return! fetchAll (message :: results)
             }
 
         task {
             let uri = $"http://localhost:8080/queues/{queueId}/messages/"
-                        
+
             let content = messages |> MessageGenerators.toJsonArray |> TestUtils.jsonContent
 
             use! postResponse = TestUtils.client.PostAsync(uri, content)
             let _ = postResponse.EnsureSuccessStatusCode()
 
             let! fetchedMessages = fetchAll []
-            
-            let fetchedPairs = fetchedMessages |> Seq.map (fun m -> (m.messageType, m.content)) |> Seq.sort
-            let originalPairs = messages |> Seq.map (fun m -> (m.messageType, m.content)) |> Seq.sort
-                        
-            return List.length fetchedMessages = messages.Length &&                     
-                    originalPairs.SequenceEqual(fetchedPairs)                    
+
+            let fetchedPairs =
+                fetchedMessages |> Seq.map (fun m -> (m.messageType, m.content)) |> Seq.sort
+
+            let originalPairs =
+                messages |> Seq.map (fun m -> (m.messageType, m.content)) |> Seq.sort
+
+            return
+                List.length fetchedMessages = messages.Length
+                && originalPairs.SequenceEqual(fetchedPairs)
         }
