@@ -70,7 +70,7 @@ module ApiTests =
             return
                 result.messageType = msg.messageType
                 && result.content = msg.content
-                //&& (dateTimeOffsetEqual result.created msg.created)
+                && (dateTimeOffsetWithLimits result.created msg.created)
                 && (dateTimeOffsetWithLimits result.active msg.active)
                 && (dateTimeOffsetWithLimits result.expiry msg.expiry)
         }
