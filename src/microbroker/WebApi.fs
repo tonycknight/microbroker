@@ -6,6 +6,8 @@ open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.DependencyInjection
 
 module WebApi =
+    let private errors msg = { ApiErrorResult.errors = [| msg |] }
+
     let private queueProvider (ctx: HttpContext) =
         ctx.RequestServices.GetRequiredService<IQueueProvider>()
 
@@ -33,7 +35,7 @@ module WebApi =
             | Choice1Of2 error -> return Choice1Of2 error
             | _ ->
                 if WebApiValidation.isValidContentType ctx |> not then
-                    return Choice1Of2 { ApiErrorResult.errors = [| "Invalid content type" |] }
+                    return errors "Invalid content type" |> Choice1Of2
                 else
                     try
                         let! msg = ctx.BindModelAsync<'a>()
@@ -41,9 +43,9 @@ module WebApi =
                         return
                             match System.Object.ReferenceEquals(msg, null) with
                             | false -> Choice2Of2 msg
-                            | true -> Choice1Of2 { ApiErrorResult.errors = [| "Invalid request" |] }
+                            | true -> errors "Invalid request" |> Choice1Of2
                     with ex ->
-                        return Choice1Of2 { ApiErrorResult.errors = [| "Invalid request" |] }
+                        return errors "Invalid request" |> Choice1Of2
         }
 
     let getQueues =
@@ -65,7 +67,7 @@ module WebApi =
 
                     let! info = q.GetInfoAsync()
 
-                    return! Successful.ok (info |> json) next ctx
+                    return! Successful.ok (json info) next ctx
             }
 
     let getMessage (queueId: string) =
