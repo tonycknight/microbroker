@@ -3,7 +3,7 @@ param (
     [string]$ConnectionString = "mongodb://host.docker.internal:27017",
     
     [PArameter(Mandatory=$false)]
-    [string]$DbName = "microbroker",
+    [string]$DbName = "microbroker-tests",
 
     [PArameter(Mandatory=$false)]
     [string]$HostUrls = "http://+:8080"
