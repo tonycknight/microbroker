@@ -1,6 +1,7 @@
 ﻿namespace microbroker.tests.acceptance
 
 open System
+open System.Linq
 open FsCheck.Xunit
 open microbroker
 
@@ -50,7 +51,7 @@ module ApiTests =
             return r.StatusCode = Net.HttpStatusCode.NotFound
         }
 
-    [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |], Replay = "(5507867521403961409,11848198107970885339,50)")>]
+    [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
     let ``POST Queue message yields on first retrival`` (queueId: Guid, msg: QueueMessage) =
         task {
             let uri = $"http://localhost:8080/queues/{queueId}/message/"
@@ -90,7 +91,7 @@ module ApiTests =
             return getResponse.StatusCode = Net.HttpStatusCode.NotFound
         }
 
-    [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
+    [<Property(MaxTest = 100, Arbitrary = [| typeof<Arbitraries.QueueMessages> |], Replay = "(2451959626271385719,9541577365501899249)")>]
     let ``POST Queue messages yields all`` (queueId: Guid, messages: QueueMessage[]) =
         task {
             let uri = $"http://localhost:8080/queues/{queueId}/messages/"
@@ -117,7 +118,9 @@ module ApiTests =
 
             let! fetchedMessages = fetchAll []
             
-            // TODO: 
-
-            return List.length fetchedMessages = messages.Length
+            let fetchedPairs = fetchedMessages |> Seq.map (fun m -> (m.messageType, m.content)) |> Seq.sort
+            let originalPairs = messages |> Seq.map (fun m -> (m.messageType, m.content)) |> Seq.sort
+                        
+            return List.length fetchedMessages = messages.Length &&                     
+                    originalPairs.SequenceEqual(fetchedPairs)                    
         }
