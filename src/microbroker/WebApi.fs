@@ -27,7 +27,7 @@ module WebApi =
                 return! pushManyToQueues queues ms
         }
 
-    let getRequest<'a> (ctx: HttpContext) queueId =
+    let private getRequest<'a> (ctx: HttpContext) queueId =
         task {
             match WebApiValidation.validateQueueName queueId with
             | Choice1Of2 error -> return Choice1Of2 error
