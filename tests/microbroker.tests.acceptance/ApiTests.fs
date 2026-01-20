@@ -96,7 +96,7 @@ module ApiTests =
             use! postResponse = TestUtils.client.PostAsync(uri, content)
             let _ = postResponse.EnsureSuccessStatusCode()
 
-            let! fetchedMessages = TestUtils.pullAll host queue
+            let! fetchedMessages = TestUtils.pullAllMessages host queue
 
             let fetchedPairs =
                 fetchedMessages |> Seq.map (fun m -> (m.messageType, m.content)) |> Seq.sort
@@ -110,7 +110,7 @@ module ApiTests =
         }
 
     [<Property(MaxTest = 100, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
-    let ``POST Queue messages uptick queue stats`` (queueId: Guid, messages: QueueMessage[]) =
+    let ``POST Queue messages set queue stats`` (queueId: Guid, messages: QueueMessage[]) =
 
         task {
             let queue = queueId.ToString()
@@ -121,8 +121,30 @@ module ApiTests =
             use! postResponse = TestUtils.client.PostAsync(uri, content)
             let _ = postResponse.EnsureSuccessStatusCode()
 
-
             let! result = TestUtils.getQueueInfo host queue
 
             return result.count = messages.Length && result.name = queue && result.futureCount = 0
+        }
+
+    [<Property(MaxTest = 100, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
+    let ``POST Queue messages decrement queue stats`` (queueId: Guid, messages: QueueMessage[]) =
+
+        task {
+            let queue = queueId.ToString()
+            let uri = $"{host}/queues/{queue}/messages/"
+
+            let content = messages |> MessageGenerators.toJsonArray |> TestUtils.jsonContent
+
+            use! postResponse = TestUtils.client.PostAsync(uri, content)
+            let _ = postResponse.EnsureSuccessStatusCode()
+
+            let! drainResults = TestUtils.pullAllQueueInfos host queue
+
+            let counts = drainResults |> List.map _.count
+            let expected = [ 0 .. messages.Length ] |> List.map int64
+
+            return
+                List.length counts = messages.Length + 1
+                // Verify that each count matches
+                && (counts |> List.zip expected |> List.map (fun (x, y) -> x = y) |> List.forall id)
         }
