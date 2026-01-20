@@ -6,12 +6,7 @@ open FsCheck.Xunit
 open microbroker
 
 module WebApiValidationTests =
-
-    (* TODO:
-    isValidContentType
     
-    *)
-
     let strings = ArbMap.defaults |> ArbMap.arbitrary<string>
 
     let nonEmptyAlphanumerics = strings |> Arb.filter (Seq.forall Char.IsLetterOrDigit) |> Arb.filter ((<>) "")
