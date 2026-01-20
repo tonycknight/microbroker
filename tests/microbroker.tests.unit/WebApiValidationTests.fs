@@ -25,12 +25,12 @@ module WebApiValidationTests =
     [<Property>]
     let ``isValidQueueName empty strings return false`` () =  
         Prop.forAll strings
-            (fun s -> s |> String.IsNullOrEmpty |> not || (WebApiValidation.isValidQueueName s |> not) )
+            ( (String.IsNullOrEmpty >> not) ||>> (WebApiValidation.isValidQueueName >> not) )
             
     [<Property>]
     let ``isValidQueueName whitespace strings return false`` () =  
         Prop.forAll strings
-            (fun s -> (s |> String.IsNullOrWhiteSpace |> not) || (WebApiValidation.isValidQueueName s |> not) )
+            ( ( String.IsNullOrWhiteSpace >> not) ||>> (WebApiValidation.isValidQueueName >> not) )
 
     [<Property>]
     let ``isValidQueueName alphanumeric strings return true`` () =  
