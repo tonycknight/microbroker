@@ -2,6 +2,7 @@
 
 open System
 open System.Linq
+open FsCheck.FSharp
 open FsCheck.Xunit
 open microbroker
 
@@ -9,6 +10,18 @@ module ApiTests =
 
     [<Literal>]
     let host = "http://localhost:8080"
+
+    let invalidQueueNames =
+        let filter (s: string) =
+            s.Length > 0
+            && (s.Contains('#') |> not)
+            && (s.Contains('?') |> not)
+            && (s.Contains('/') |> not)
+
+        ArbMap.defaults
+        |> ArbMap.arbitrary<string>
+        |> Arb.filter filter
+        |> Arb.filter (WebApiValidation.isValidQueueName >> not)
 
     [<Property(MaxTest = 1)>]
     let ``GET Queues returns array`` () =
@@ -22,8 +35,22 @@ module ApiTests =
                 && result |> Array.forall (fun r -> r.futureCount >= 0)
         }
 
+    [<Property>]
+    let ``GET Queue of invalid queue name returns error`` () =
+        let property queueId =
+            task {
+                let uri = $"{host}/queues/{queueId}/"
+                use! r = TestUtils.client.GetAsync(uri)
+
+                return
+                    r.StatusCode = Net.HttpStatusCode.BadRequest
+                    || r.StatusCode = Net.HttpStatusCode.NotFound
+            }
+
+        Prop.forAll invalidQueueNames property
+
     [<Property(MaxTest = 10)>]
-    let ``GET Queue message of unknown queue name returns empty queue`` (queueId: Guid) =
+    let ``GET Queue of unknown queue name returns empty stats`` (queueId: Guid) =
         task {
             let queue = queueId.ToString()
 
@@ -31,6 +58,20 @@ module ApiTests =
 
             return result.name = queueId.ToString() && result.count = 0 && result.futureCount = 0
         }
+
+    [<Property>]
+    let ``GET Queue message of invalid queue name returns error`` () =
+        let property queueId =
+            task {
+                let uri = $"{host}/queues/{queueId}/message/"
+                use! r = TestUtils.client.GetAsync(uri)
+
+                return
+                    r.StatusCode = Net.HttpStatusCode.BadRequest
+                    || r.StatusCode = Net.HttpStatusCode.NotFound
+            }
+
+        Prop.forAll invalidQueueNames property
 
     [<Property(MaxTest = 10)>]
     let ``GET Queue message of unknown queue name returns 404`` (queueId: Guid) =
@@ -40,6 +81,24 @@ module ApiTests =
 
             return r.StatusCode = Net.HttpStatusCode.NotFound
         }
+
+    [<Property>]
+    let ``POST Queue message to invalid queue yields error`` () =
+        let property (msg, name) =
+            task {
+                let uri = $"{host}/queues/{name}/message/"
+
+                let content = msg |> MessageGenerators.toJson |> TestUtils.jsonContent
+
+                use! r = TestUtils.client.PostAsync(uri, content)
+
+                return
+                    r.StatusCode = Net.HttpStatusCode.BadRequest
+                    || r.StatusCode = Net.HttpStatusCode.NotFound
+            }
+
+        Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate(), invalidQueueNames)) property
+
 
     [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
     let ``POST Queue message yields on first retrival`` (queueId: Guid, msg: QueueMessage) =
@@ -148,3 +207,20 @@ module ApiTests =
                 // Verify that each count matches
                 && (counts |> List.zip expected |> List.map (fun (x, y) -> x = y) |> List.forall id)
         }
+
+    [<Property>]
+    let ``POST Queue messages to invalid queue yields error`` () =
+        let property (msgs, name) =
+            task {
+                let uri = $"{host}/queues/{name}/messages/"
+
+                let content = msgs |> MessageGenerators.toJsonArray |> TestUtils.jsonContent
+
+                use! r = TestUtils.client.PostAsync(uri, content)
+
+                return
+                    r.StatusCode = Net.HttpStatusCode.BadRequest
+                    || r.StatusCode = Net.HttpStatusCode.NotFound
+            }
+
+        Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate() |> Arb.array, invalidQueueNames)) property

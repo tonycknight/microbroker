@@ -1,7 +1,5 @@
 ﻿namespace microbroker
 
-open System
-open Giraffe
 open Microsoft.AspNetCore.Http
 
 module WebApiValidation =
