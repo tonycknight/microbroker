@@ -133,7 +133,7 @@ jobs:
           docker network create -d bridge ${{ env.docker-network }}
 
       - name: Start MongoDB
-        uses: supercharge/mongodb-github-action@9596274b9749a3c83678f0377c70bfceff635f28 # TODO: 1.12.1 was tagged before the network support. 
+        uses: supercharge/mongodb-github-action@9306129218d23ef2e0a9e11bd708950d886bb855 # TODO: 1.12.1 was tagged before the network support. 
         with:
           mongodb-version: 8 # latest # ${{ matrix.mongodb-version }}
           docker-network: ${{ env.docker-network }}
