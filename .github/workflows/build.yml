@@ -86,7 +86,7 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: Full_code_coverage_report
+          name: code_coverage_report
           path: ./publish/codecoverage/*.*
                     
       - name: Report Unit test results
