@@ -108,11 +108,11 @@ module ApiTests =
             let content = msg |> MessageGenerators.toJson |> TestUtils.jsonContent
 
             use! postResponse = TestUtils.client.PostAsync(uri, content)
-            let _ = postResponse.EnsureSuccessStatusCode()
+            postResponse.EnsureSuccessStatusCode() |> ignore
 
             // Fetch from the head of the queue
             use! getResponse = TestUtils.client.GetAsync(uri)
-            let _ = getResponse.EnsureSuccessStatusCode()
+            getResponse.EnsureSuccessStatusCode() |> ignore
 
             let! json = getResponse.Content.ReadAsStringAsync()
             let result = MessageGenerators.fromJson json
@@ -137,7 +137,7 @@ module ApiTests =
             let content = message |> MessageGenerators.toJson |> TestUtils.jsonContent
 
             use! postResponse = TestUtils.client.PostAsync(uri, content)
-            let _ = postResponse.EnsureSuccessStatusCode()
+            postResponse.EnsureSuccessStatusCode() |> ignore
 
             use! getResponse = TestUtils.client.GetAsync(uri)
             return getResponse.StatusCode = Net.HttpStatusCode.NotFound
@@ -153,7 +153,7 @@ module ApiTests =
             let content = messages |> MessageGenerators.toJsonArray |> TestUtils.jsonContent
 
             use! postResponse = TestUtils.client.PostAsync(uri, content)
-            let _ = postResponse.EnsureSuccessStatusCode()
+            postResponse.EnsureSuccessStatusCode() |> ignore
 
             let! fetchedMessages = TestUtils.pullAllMessages host queue
 
@@ -178,7 +178,7 @@ module ApiTests =
             let content = messages |> MessageGenerators.toJsonArray |> TestUtils.jsonContent
 
             use! postResponse = TestUtils.client.PostAsync(uri, content)
-            let _ = postResponse.EnsureSuccessStatusCode()
+            postResponse.EnsureSuccessStatusCode() |> ignore
 
             let! result = TestUtils.getQueueInfo host queue
 
@@ -195,7 +195,7 @@ module ApiTests =
             let content = messages |> MessageGenerators.toJsonArray |> TestUtils.jsonContent
 
             use! postResponse = TestUtils.client.PostAsync(uri, content)
-            let _ = postResponse.EnsureSuccessStatusCode()
+            postResponse.EnsureSuccessStatusCode() |> ignore
 
             let! drainResults = TestUtils.pullAllQueueInfos host queue
 
@@ -224,3 +224,47 @@ module ApiTests =
             }
 
         Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate() |> Arb.array, invalidQueueNames)) property
+
+    [<Property>]
+    let ``DELETE Queue of invalid queue name returns error`` () =
+        let property queueId =
+            task {
+                let uri = $"{host}/queues/{queueId}/"
+                use! r = TestUtils.client.DeleteAsync(uri)
+
+                return
+                    r.StatusCode = Net.HttpStatusCode.BadRequest
+                    || r.StatusCode = Net.HttpStatusCode.NotFound
+            }
+
+        Prop.forAll invalidQueueNames property
+
+    [<Property(MaxTest = 10)>]
+    let ``DELETE Queue of unknown queue name returns error`` (queueId: Guid) =
+        task {
+            let uri = $"{host}/queues/{queueId}/"
+            use! r = TestUtils.client.DeleteAsync(uri)
+
+            return
+                r.StatusCode = Net.HttpStatusCode.BadRequest
+                || r.StatusCode = Net.HttpStatusCode.NotFound
+        }
+
+    [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
+    let ``DELETE Queue after message post`` (queueId: Guid, msg: QueueMessage) =
+        task {
+            let uri = $"{host}/queues/{queueId}/message/"
+
+            let content = msg |> MessageGenerators.toJson |> TestUtils.jsonContent
+
+            use! postResponse = TestUtils.client.PostAsync(uri, content)
+            postResponse.EnsureSuccessStatusCode() |> ignore
+
+            let uri = $"{host}/queues/{queueId}/"
+            use! deleteResponse = TestUtils.client.DeleteAsync(uri)
+            deleteResponse.EnsureSuccessStatusCode() |> ignore
+
+            let! queueInfo = TestUtils.getQueueInfo host (queueId.ToString())
+
+            return queueInfo.count = 0
+        }
