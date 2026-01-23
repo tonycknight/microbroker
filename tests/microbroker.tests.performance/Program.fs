@@ -9,14 +9,13 @@ open NBomber.FSharp
 
 module Program =
 
-    let queuesUrl = "http://localhost:8080/queues/"
-    let messageUrl = "http://localhost:8080/queues/perftests/message/"
+    
 
     let setSimulation = 
         Scenario.withWarmUpDuration (seconds 15)
         >> Scenario.withLoadSimulations [ Inject(rate = 100, interval = seconds 1, during = seconds 180) ] 
 
-    let getQueues httpClient context =
+    let getQueues httpClient queuesUrl context =
         task {
                     
             let request = Http.createRequest "GET" queuesUrl
@@ -26,7 +25,7 @@ module Program =
             return response
         }
 
-    let pushMessage httpClient context =
+    let pushMessage httpClient messageUrl context =
         task {
             let now = DateTimeOffset.UtcNow
 
@@ -45,7 +44,7 @@ module Program =
             return response                                
         }
 
-    let pullMessage httpClient context = 
+    let pullMessage httpClient messageUrl context = 
         task {
             let request = Http.createRequest "GET" messageUrl
                 
@@ -54,30 +53,37 @@ module Program =
             return response
         }
 
-    let pushPullMessage httpClient context =
+    let pushPullMessage httpClient messageUrl context =
         task {
 
-            let! post = Step.run("post message", context, (pushMessage httpClient))
+            let! post = Step.run("post message", context, (pushMessage httpClient messageUrl))
 
             if post.IsError then
                 return Response.fail ("", "Unexpected status code")
             else
-                let! get = Step.run("get message", context, (pullMessage httpClient))
+                let! get = Step.run("get message", context, (pullMessage httpClient messageUrl))
                 return Response.ok()
         }
 
     [<EntryPoint>]
     let main argv =
         
+        let host = argv |> Array.tryItem 0 |> Option.defaultValue "http://localhost:8080"
+        let queuesUrl = $"{host}/queues/"
+        let messageUrl = $"{host}/queues/perftests/message/"
+
         use httpClient = Http.createDefaultClient()
         
         let pushPull = 
-            Scenario.create ("push pull message", pushPullMessage httpClient) |> setSimulation
+            Scenario.create ("push pull message", pushPullMessage httpClient messageUrl) |> setSimulation
                 
         let getCounts =
-            Scenario.create ("get queues", getQueues httpClient) |> setSimulation
+            Scenario.create ("get queues", getQueues httpClient queuesUrl) |> setSimulation
 
-        NBomberRunner.registerScenarios [ pushPull; getCounts ]
-        |> NBomberRunner.run |> ignore
+        let result = 
+            NBomberRunner.registerScenarios [ pushPull; getCounts ]
+            |> NBomberRunner.run
         
-        0
+        match result.IsOk with
+        | true ->   0
+        | _ ->      1
