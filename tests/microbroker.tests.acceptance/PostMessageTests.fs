@@ -148,6 +148,6 @@ module PostMessageTests =
                     || r.StatusCode = Net.HttpStatusCode.NotFound
             }
 
-        Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate() |> Arb.array, Arbitraries.invalidQueueNames)) property
-
-    
+        Prop.forAll
+            (Arb.zip (Arbitraries.QueueMessages.Generate() |> Arb.array, Arbitraries.invalidQueueNames))
+            property

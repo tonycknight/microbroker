@@ -53,5 +53,3 @@ module GetMessageTests =
 
             return r.StatusCode = Net.HttpStatusCode.NotFound
         }
-
-    

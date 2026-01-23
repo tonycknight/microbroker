@@ -5,7 +5,7 @@ open FsCheck.Xunit
 open microbroker
 
 module QueueCountTests =
-        
+
     [<Property(MaxTest = 1)>]
     let ``GET Queues returns array`` () =
         task {
