@@ -9,9 +9,10 @@ open NBomber.FSharp
 
 module Program =
 
+    let setWarmup duration = Scenario.withWarmUpDuration (seconds duration)
+
     let setSimulation rate duration = 
-        Scenario.withWarmUpDuration (seconds 15)
-        >> Scenario.withLoadSimulations [ Inject(rate = rate, interval = seconds 1, during = seconds duration) ] 
+        Scenario.withLoadSimulations [ Inject(rate = rate, interval = seconds 1, during = seconds duration) ] 
 
     let getQueues httpClient queuesUrl context =
         task {
@@ -59,6 +60,7 @@ module Program =
     let main argv =
         
         let host = argv |> Array.tryItem 0 |> Option.defaultValue "http://localhost:8080"
+        let warmup = 15
         let duration = 180
         let rate = 100
 
@@ -69,9 +71,9 @@ module Program =
         
         let result = 
             NBomberRunner.registerScenarios [ 
-                Scenario.create ("push message", pushMessage httpClient messageUrl) |> setSimulation rate duration; 
-                Scenario.create ("pull message", pullMessage httpClient messageUrl) |> setSimulation rate duration; 
-                Scenario.create ("get queues", getQueues httpClient queuesUrl) |> setSimulation rate duration
+                Scenario.create ("push message", pushMessage httpClient messageUrl) |> setWarmup warmup |> setSimulation rate duration; 
+                Scenario.create ("pull message", pullMessage httpClient messageUrl) |> setWarmup warmup |> setSimulation rate duration; 
+                Scenario.create ("get queues", getQueues httpClient queuesUrl) |> setWarmup warmup |> setSimulation rate duration
             ]
             |> NBomberRunner.run
         
