@@ -9,8 +9,11 @@
     <Compile Include="TestDataGenerators.fs" />
     <Compile Include="TestUtils.fs" />
     <Compile Include="MetadataApiTests.fs" />
-    <Compile Include="ApiTests.fs" />
-    <Compile Include="TtaQueueTests.fs" />
+    <Compile Include="GetMessageTests.fs" />
+    <Compile Include="PostMessageTests.fs" />
+    <Compile Include="QueueCountTests.fs" />
+    <Compile Include="DeleteQueueTests.fs" />
+    <Compile Include="PostTtaMessageTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

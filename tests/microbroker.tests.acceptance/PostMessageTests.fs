@@ -1,4 +1,4 @@
-﻿namespace microbroker.tests.acceptance
+namespace microbroker.tests.acceptance
 
 open System
 open System.Linq
@@ -6,79 +6,7 @@ open FsCheck.FSharp
 open FsCheck.Xunit
 open microbroker
 
-module ApiTests =
-
-    let invalidQueueNames =
-        let filter (s: string) =
-            s.Length > 0
-            && (s.Contains('#') |> not)
-            && (s.Contains('?') |> not)
-            && (s.Contains('/') |> not)
-
-        ArbMap.defaults
-        |> ArbMap.arbitrary<string>
-        |> Arb.filter filter
-        |> Arb.filter (WebApiValidation.isValidQueueName >> not)
-
-    [<Property(MaxTest = 1)>]
-    let ``GET Queues returns array`` () =
-        task {
-            let! result = TestUtils.getQueueInfos TestUtils.host
-
-            return
-                result |> Array.length >= 0
-                && result |> Array.forall (fun r -> r.name |> String.IsNullOrWhiteSpace |> not)
-                && result |> Array.forall (fun r -> r.count >= 0)
-                && result |> Array.forall (fun r -> r.futureCount >= 0)
-        }
-
-    [<Property>]
-    let ``GET Queue of invalid queue name returns error`` () =
-        let property queueId =
-            task {
-                let uri = $"{TestUtils.host}/queues/{queueId}/"
-                use! r = TestUtils.client.GetAsync(uri)
-
-                return
-                    r.StatusCode = Net.HttpStatusCode.BadRequest
-                    || r.StatusCode = Net.HttpStatusCode.NotFound
-            }
-
-        Prop.forAll invalidQueueNames property
-
-    [<Property(MaxTest = 10)>]
-    let ``GET Queue of unknown queue name returns empty stats`` (queueId: Guid) =
-        task {
-            let queue = queueId.ToString()
-
-            let! result = TestUtils.getQueueInfo TestUtils.host queue
-
-            return result.name = queueId.ToString() && result.count = 0 && result.futureCount = 0
-        }
-
-    [<Property>]
-    let ``GET Queue message of invalid queue name returns error`` () =
-        let property queueId =
-            task {
-                let uri = $"{TestUtils.host}/queues/{queueId}/message/"
-                use! r = TestUtils.client.GetAsync(uri)
-
-                return
-                    r.StatusCode = Net.HttpStatusCode.BadRequest
-                    || r.StatusCode = Net.HttpStatusCode.NotFound
-            }
-
-        Prop.forAll invalidQueueNames property
-
-    [<Property(MaxTest = 10)>]
-    let ``GET Queue message of unknown queue name returns 404`` (queueId: Guid) =
-        task {
-            let uri = $"{TestUtils.host}/queues/{queueId}/message/"
-            use! r = TestUtils.client.GetAsync(uri)
-
-            return r.StatusCode = Net.HttpStatusCode.NotFound
-        }
-
+module PostMessageTests =
     [<Property>]
     let ``POST Queue message to invalid queue yields error`` () =
         let property (msg, name) =
@@ -94,7 +22,7 @@ module ApiTests =
                     || r.StatusCode = Net.HttpStatusCode.NotFound
             }
 
-        Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate(), invalidQueueNames)) property
+        Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate(), Arbitraries.invalidQueueNames)) property
 
 
     [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
@@ -220,48 +148,6 @@ module ApiTests =
                     || r.StatusCode = Net.HttpStatusCode.NotFound
             }
 
-        Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate() |> Arb.array, invalidQueueNames)) property
+        Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate() |> Arb.array, Arbitraries.invalidQueueNames)) property
 
-    [<Property>]
-    let ``DELETE Queue of invalid queue name returns error`` () =
-        let property queueId =
-            task {
-                let uri = $"{TestUtils.host}/queues/{queueId}/"
-                use! r = TestUtils.client.DeleteAsync(uri)
-
-                return
-                    r.StatusCode = Net.HttpStatusCode.BadRequest
-                    || r.StatusCode = Net.HttpStatusCode.NotFound
-            }
-
-        Prop.forAll invalidQueueNames property
-
-    [<Property(MaxTest = 10)>]
-    let ``DELETE Queue of unknown queue name returns error`` (queueId: Guid) =
-        task {
-            let uri = $"{TestUtils.host}/queues/{queueId}/"
-            use! r = TestUtils.client.DeleteAsync(uri)
-
-            return
-                r.StatusCode = Net.HttpStatusCode.BadRequest
-                || r.StatusCode = Net.HttpStatusCode.NotFound
-        }
-
-    [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
-    let ``DELETE Queue after message post`` (queueId: Guid, msg: QueueMessage) =
-        task {
-            let uri = $"{TestUtils.host}/queues/{queueId}/message/"
-
-            let content = msg |> MessageGenerators.toJson |> TestUtils.jsonContent
-
-            use! postResponse = TestUtils.client.PostAsync(uri, content)
-            postResponse.EnsureSuccessStatusCode() |> ignore
-
-            let uri = $"{TestUtils.host}/queues/{queueId}/"
-            use! deleteResponse = TestUtils.client.DeleteAsync(uri)
-            deleteResponse.EnsureSuccessStatusCode() |> ignore
-
-            let! queueInfo = TestUtils.getQueueInfo TestUtils.host (queueId.ToString())
-
-            return queueInfo.count = 0
-        }
+    
