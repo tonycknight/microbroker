@@ -9,6 +9,8 @@ module Combinators =
 
     let (||>>) x y = (fun (v: 'a) -> x (v) || y (v))
 
+    let (=>>) x y = (fun (v: 'a) -> x (v) = y (v))
+
 module Char =
     let toLowerInvariant (value: char) = Char.ToLowerInvariant(value)
 
@@ -19,6 +21,8 @@ module Char =
         allowedChars |> Seq.map toLowerInvariant |> Seq.contains value
 
 module Strings =
+    let str<'a> (value: 'a) = value.ToString()
+
     let appendIfMissing (suffix: string) (value: string) =
         if value.EndsWith(suffix) |> not then
             $"{value}{suffix}"
@@ -32,6 +36,8 @@ module Strings =
         if value = comparand then defaultValue else value
 
     let join (delim: string) (values: seq<string>) = System.String.Join(delim, values)
+
+    let lower (value: string) = value.ToLower()
 
     let inline (==~) (left: string) (right: string) =
         StringComparer.InvariantCultureIgnoreCase.Equals(left, right)

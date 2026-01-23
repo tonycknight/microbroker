@@ -30,6 +30,18 @@ module Arbitraries =
 
     let isValidString = isNotNullOrEmpty &&>> isAlphaNumeric
 
+    let invalidQueueNames =
+        let filter (s: string) =
+            s.Length > 0
+            && (s.Contains('#') |> not)
+            && (s.Contains('?') |> not)
+            && (s.Contains('/') |> not)
+
+        ArbMap.defaults
+        |> ArbMap.arbitrary<string>
+        |> Arb.filter filter
+        |> Arb.filter (WebApiValidation.isValidQueueName >> not)
+
     type AlphaNumericString =
 
         static member Generate() =

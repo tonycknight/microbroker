@@ -6,6 +6,8 @@ open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.DependencyInjection
 
 module WebApi =
+    let private errors msg = { ApiErrorResult.errors = [| msg |] }
+
     let private queueProvider (ctx: HttpContext) =
         ctx.RequestServices.GetRequiredService<IQueueProvider>()
 
@@ -27,6 +29,25 @@ module WebApi =
                 return! pushManyToQueues queues ms
         }
 
+    let private getRequest<'a> (ctx: HttpContext) queueId =
+        task {
+            match WebApiValidation.validateQueueName queueId with
+            | Choice1Of2 error -> return Choice1Of2 error
+            | _ ->
+                if WebApiValidation.isValidContentType ctx |> not then
+                    return errors "Invalid content type" |> Choice1Of2
+                else
+                    try
+                        let! msg = ctx.BindModelAsync<'a>()
+
+                        return
+                            match System.Object.ReferenceEquals(msg, null) with
+                            | false -> Choice2Of2 msg
+                            | true -> errors "Invalid request" |> Choice1Of2
+                    with ex ->
+                        return errors "Invalid request" |> Choice1Of2
+        }
+
     let getQueues =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
@@ -46,7 +67,7 @@ module WebApi =
 
                     let! info = q.GetInfoAsync()
 
-                    return! Successful.ok (info |> json) next ctx
+                    return! Successful.ok (json info) next ctx
             }
 
     let getMessage (queueId: string) =
@@ -67,7 +88,7 @@ module WebApi =
     let postMessage (queueId: string) =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
-                match! WebApiValidation.getRequest<QueueMessage> ctx queueId with
+                match! getRequest<QueueMessage> ctx queueId with
                 | Choice1Of2 error -> return! RequestErrors.BAD_REQUEST error next ctx
                 | Choice2Of2 msg ->
                     let! q = queueProvider ctx |> queue queueId
@@ -84,7 +105,7 @@ module WebApi =
     let postMessages (queueId: string) =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
-                match! WebApiValidation.getRequest<QueueMessage[]> ctx queueId with
+                match! getRequest<QueueMessage[]> ctx queueId with
                 | Choice1Of2 error -> return! RequestErrors.BAD_REQUEST error next ctx
                 | Choice2Of2 msgs ->
                     let qp = queueProvider ctx
