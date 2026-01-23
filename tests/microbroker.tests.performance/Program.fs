@@ -14,7 +14,7 @@ module Program =
 
     let setSimulation = 
         Scenario.withWarmUpDuration (seconds 15)
-        >> Scenario.withLoadSimulations [ Inject(rate = 100, interval = seconds 1, during = seconds 30) ] 
+        >> Scenario.withLoadSimulations [ Inject(rate = 100, interval = seconds 1, during = seconds 180) ] 
 
     let getQueues httpClient context =
         task {
