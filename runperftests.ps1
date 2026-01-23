@@ -1,0 +1,1 @@
+dotnet run --project ./tests/microbroker.tests.performance/microbroker.tests.performance.fsproj -c Release

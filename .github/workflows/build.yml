@@ -161,11 +161,53 @@ jobs:
           reporter: dotnet-trx
           token: ${{ secrets.GITHUB_TOKEN }}
 
+  performance-tests:
+    name: Run Performance tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build docker image
+        run: docker build -f Dockerfile -t microbroker:localbuild --build-arg BuildVersion=0.0.0-localbuild .
+
+      - name: Set docker network name
+        run: |
+          echo "docker-network=microbroker-acceptance-tests-${{ github.run_number }}" >> $GITHUB_ENV
+          
+      - name: Create docker network
+        run: |
+          docker network create -d bridge ${{ env.docker-network }}
+
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@9596274b9749a3c83678f0377c70bfceff635f28 # TODO: 1.12.1 was tagged before the network support. 
+        with:
+          mongodb-version: 8 # latest # ${{ matrix.mongodb-version }}
+          docker-network: ${{ env.docker-network }}
+          docker-network-alias: mongodb
+
+      - name: Start microbroker
+        run: |
+          docker run --name microbroker-acceptancetests --detach --network=${{ env.docker-network }} -it --rm -p 8080:8080 microbroker:localbuild --mongoConnection=mongodb://mongodb:27017
+
+      - name: Run Tests
+        run: |
+          dotnet run --project ./tests/microbroker.tests.performance/microbroker.tests.performance.fsproj -c Release
+
+      - name: Stop microbroker
+        if: always()
+        run: |
+          docker stop microbroker-acceptancetests
+
+      - name: Report Acceptance test results
+        if: always()
+        run: |
+          cat **/nbomber_report_*.md >> $GITHUB_STEP_SUMMARY
 
   build-publish-docker-image:
     name: Build & Publish docker image
     runs-on: ubuntu-latest
-    needs:   [ build, unit-tests, sca, acceptance-tests ]
+    needs:   [ build, unit-tests, sca, acceptance-tests, performance-tests ]
 
     steps:
       - uses: actions/checkout@v6
