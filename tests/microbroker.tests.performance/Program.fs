@@ -9,11 +9,9 @@ open NBomber.FSharp
 
 module Program =
 
-    
-
-    let setSimulation = 
+    let setSimulation rate duration = 
         Scenario.withWarmUpDuration (seconds 15)
-        >> Scenario.withLoadSimulations [ Inject(rate = 100, interval = seconds 1, during = seconds 180) ] 
+        >> Scenario.withLoadSimulations [ Inject(rate = rate, interval = seconds 1, during = seconds duration) ] 
 
     let getQueues httpClient queuesUrl context =
         task {
@@ -50,38 +48,31 @@ module Program =
                 
             let! response = request |> Http.send httpClient
 
-            return response
-        }
-
-    let pushPullMessage httpClient messageUrl context =
-        task {
-
-            let! post = Step.run("post message", context, (pushMessage httpClient messageUrl))
-
-            if post.IsError then
-                return Response.fail ("", "Unexpected status code")
-            else
-                let! get = Step.run("get message", context, (pullMessage httpClient messageUrl))
-                return Response.ok()
+            return 
+                match response.StatusCode with
+                | "OK" 
+                | "NotFound" -> Response.ok (sizeBytes = response.SizeBytes)
+                | x -> Response.fail x
         }
 
     [<EntryPoint>]
     let main argv =
         
         let host = argv |> Array.tryItem 0 |> Option.defaultValue "http://localhost:8080"
+        let duration = 180
+        let rate = 100
+
         let queuesUrl = $"{host}/queues/"
         let messageUrl = $"{host}/queues/perftests/message/"
 
         use httpClient = Http.createDefaultClient()
         
-        let pushPull = 
-            Scenario.create ("push pull message", pushPullMessage httpClient messageUrl) |> setSimulation
-                
-        let getCounts =
-            Scenario.create ("get queues", getQueues httpClient queuesUrl) |> setSimulation
-
         let result = 
-            NBomberRunner.registerScenarios [ pushPull; getCounts ]
+            NBomberRunner.registerScenarios [ 
+                Scenario.create ("push message", pushMessage httpClient messageUrl) |> setSimulation rate duration; 
+                Scenario.create ("pull message", pullMessage httpClient messageUrl) |> setSimulation rate duration; 
+                Scenario.create ("get queues", getQueues httpClient queuesUrl) |> setSimulation rate duration
+            ]
             |> NBomberRunner.run
         
         match result.IsOk with
