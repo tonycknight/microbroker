@@ -10,6 +10,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{D9BD7922-B42C-4341-9060-A609953866BA}"
 	ProjectSection(SolutionItems) = preProject
 		.github\workflows\build.yml = .github\workflows\build.yml
+		.github\dependabot.yml = .github\dependabot.yml
 		.github\workflows\pr-checks.yml = .github\workflows\pr-checks.yml
 		.github\workflows\sca.yml = .github\workflows\sca.yml
 	EndProjectSection
@@ -30,6 +31,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "http", "http", "{B84B698C-D
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "microbroker.tests.acceptance", "tests\microbroker.tests.acceptance\microbroker.tests.acceptance.fsproj", "{CF0F3C6F-9621-4B45-8A47-2DE91C703F52}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "microbroker.tests.performance", "tests\microbroker.tests.performance\microbroker.tests.performance.fsproj", "{0699F3E3-6B52-4636-B4FB-4E1E7DAAEC88}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -48,6 +51,10 @@ Global
 		{CF0F3C6F-9621-4B45-8A47-2DE91C703F52}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CF0F3C6F-9621-4B45-8A47-2DE91C703F52}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CF0F3C6F-9621-4B45-8A47-2DE91C703F52}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0699F3E3-6B52-4636-B4FB-4E1E7DAAEC88}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0699F3E3-6B52-4636-B4FB-4E1E7DAAEC88}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0699F3E3-6B52-4636-B4FB-4E1E7DAAEC88}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0699F3E3-6B52-4636-B4FB-4E1E7DAAEC88}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -57,6 +64,7 @@ Global
 		{AF9681B0-4065-4305-B762-65D70D787B3A} = {543E4127-DC54-49F4-8418-E74C45203726}
 		{B84B698C-D52A-482F-8487-5C058B7A1E88} = {543E4127-DC54-49F4-8418-E74C45203726}
 		{CF0F3C6F-9621-4B45-8A47-2DE91C703F52} = {543E4127-DC54-49F4-8418-E74C45203726}
+		{0699F3E3-6B52-4636-B4FB-4E1E7DAAEC88} = {543E4127-DC54-49F4-8418-E74C45203726}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {12BB7038-534F-44A1-B33A-E50506C59B81}
