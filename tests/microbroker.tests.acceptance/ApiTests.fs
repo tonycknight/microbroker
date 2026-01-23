@@ -8,9 +8,6 @@ open microbroker
 
 module ApiTests =
 
-    [<Literal>]
-    let host = "http://localhost:8080"
-
     let invalidQueueNames =
         let filter (s: string) =
             s.Length > 0
@@ -26,7 +23,7 @@ module ApiTests =
     [<Property(MaxTest = 1)>]
     let ``GET Queues returns array`` () =
         task {
-            let! result = TestUtils.getQueueInfos host
+            let! result = TestUtils.getQueueInfos TestUtils.host
 
             return
                 result |> Array.length >= 0
@@ -39,7 +36,7 @@ module ApiTests =
     let ``GET Queue of invalid queue name returns error`` () =
         let property queueId =
             task {
-                let uri = $"{host}/queues/{queueId}/"
+                let uri = $"{TestUtils.host}/queues/{queueId}/"
                 use! r = TestUtils.client.GetAsync(uri)
 
                 return
@@ -54,7 +51,7 @@ module ApiTests =
         task {
             let queue = queueId.ToString()
 
-            let! result = TestUtils.getQueueInfo host queue
+            let! result = TestUtils.getQueueInfo TestUtils.host queue
 
             return result.name = queueId.ToString() && result.count = 0 && result.futureCount = 0
         }
@@ -63,7 +60,7 @@ module ApiTests =
     let ``GET Queue message of invalid queue name returns error`` () =
         let property queueId =
             task {
-                let uri = $"{host}/queues/{queueId}/message/"
+                let uri = $"{TestUtils.host}/queues/{queueId}/message/"
                 use! r = TestUtils.client.GetAsync(uri)
 
                 return
@@ -76,7 +73,7 @@ module ApiTests =
     [<Property(MaxTest = 10)>]
     let ``GET Queue message of unknown queue name returns 404`` (queueId: Guid) =
         task {
-            let uri = $"{host}/queues/{queueId}/message/"
+            let uri = $"{TestUtils.host}/queues/{queueId}/message/"
             use! r = TestUtils.client.GetAsync(uri)
 
             return r.StatusCode = Net.HttpStatusCode.NotFound
@@ -86,7 +83,7 @@ module ApiTests =
     let ``POST Queue message to invalid queue yields error`` () =
         let property (msg, name) =
             task {
-                let uri = $"{host}/queues/{name}/message/"
+                let uri = $"{TestUtils.host}/queues/{name}/message/"
 
                 let content = msg |> MessageGenerators.toJson |> TestUtils.jsonContent
 
@@ -103,7 +100,7 @@ module ApiTests =
     [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
     let ``POST Queue message yields on first retrival`` (queueId: Guid, msg: QueueMessage) =
         task {
-            let uri = $"{host}/queues/{queueId}/message/"
+            let uri = $"{TestUtils.host}/queues/{queueId}/message/"
 
             let content = msg |> MessageGenerators.toJson |> TestUtils.jsonContent
 
@@ -128,7 +125,7 @@ module ApiTests =
     [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
     let ``POST expired queue message yields nothing`` (queueId: Guid, message: QueueMessage) =
         task {
-            let uri = $"{host}/queues/{queueId}/message/"
+            let uri = $"{TestUtils.host}/queues/{queueId}/message/"
 
             let message =
                 { message with
@@ -148,14 +145,14 @@ module ApiTests =
 
         task {
             let queue = queueId.ToString()
-            let uri = $"{host}/queues/{queue}/messages/"
+            let uri = $"{TestUtils.host}/queues/{queue}/messages/"
 
             let content = messages |> MessageGenerators.toJsonArray |> TestUtils.jsonContent
 
             use! postResponse = TestUtils.client.PostAsync(uri, content)
             postResponse.EnsureSuccessStatusCode() |> ignore
 
-            let! fetchedMessages = TestUtils.pullAllMessages host queue
+            let! fetchedMessages = TestUtils.pullAllMessages TestUtils.host queue
 
             let fetchedPairs =
                 fetchedMessages |> Seq.map (fun m -> (m.messageType, m.content)) |> Seq.sort
@@ -173,14 +170,14 @@ module ApiTests =
 
         task {
             let queue = queueId.ToString()
-            let uri = $"{host}/queues/{queue}/messages/"
+            let uri = $"{TestUtils.host}/queues/{queue}/messages/"
 
             let content = messages |> MessageGenerators.toJsonArray |> TestUtils.jsonContent
 
             use! postResponse = TestUtils.client.PostAsync(uri, content)
             postResponse.EnsureSuccessStatusCode() |> ignore
 
-            let! result = TestUtils.getQueueInfo host queue
+            let! result = TestUtils.getQueueInfo TestUtils.host queue
 
             return result.count = messages.Length && result.name = queue && result.futureCount = 0
         }
@@ -190,14 +187,14 @@ module ApiTests =
 
         task {
             let queue = queueId.ToString()
-            let uri = $"{host}/queues/{queue}/messages/"
+            let uri = $"{TestUtils.host}/queues/{queue}/messages/"
 
             let content = messages |> MessageGenerators.toJsonArray |> TestUtils.jsonContent
 
             use! postResponse = TestUtils.client.PostAsync(uri, content)
             postResponse.EnsureSuccessStatusCode() |> ignore
 
-            let! drainResults = TestUtils.pullAllQueueInfos host queue
+            let! drainResults = TestUtils.pullAllQueueInfos TestUtils.host queue
 
             let counts = drainResults |> List.map _.count
             let expected = [ 0 .. messages.Length ] |> List.map int64
@@ -212,7 +209,7 @@ module ApiTests =
     let ``POST Queue messages to invalid queue yields error`` () =
         let property (msgs, name) =
             task {
-                let uri = $"{host}/queues/{name}/messages/"
+                let uri = $"{TestUtils.host}/queues/{name}/messages/"
 
                 let content = msgs |> MessageGenerators.toJsonArray |> TestUtils.jsonContent
 
@@ -229,7 +226,7 @@ module ApiTests =
     let ``DELETE Queue of invalid queue name returns error`` () =
         let property queueId =
             task {
-                let uri = $"{host}/queues/{queueId}/"
+                let uri = $"{TestUtils.host}/queues/{queueId}/"
                 use! r = TestUtils.client.DeleteAsync(uri)
 
                 return
@@ -242,7 +239,7 @@ module ApiTests =
     [<Property(MaxTest = 10)>]
     let ``DELETE Queue of unknown queue name returns error`` (queueId: Guid) =
         task {
-            let uri = $"{host}/queues/{queueId}/"
+            let uri = $"{TestUtils.host}/queues/{queueId}/"
             use! r = TestUtils.client.DeleteAsync(uri)
 
             return
@@ -253,18 +250,18 @@ module ApiTests =
     [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
     let ``DELETE Queue after message post`` (queueId: Guid, msg: QueueMessage) =
         task {
-            let uri = $"{host}/queues/{queueId}/message/"
+            let uri = $"{TestUtils.host}/queues/{queueId}/message/"
 
             let content = msg |> MessageGenerators.toJson |> TestUtils.jsonContent
 
             use! postResponse = TestUtils.client.PostAsync(uri, content)
             postResponse.EnsureSuccessStatusCode() |> ignore
 
-            let uri = $"{host}/queues/{queueId}/"
+            let uri = $"{TestUtils.host}/queues/{queueId}/"
             use! deleteResponse = TestUtils.client.DeleteAsync(uri)
             deleteResponse.EnsureSuccessStatusCode() |> ignore
 
-            let! queueInfo = TestUtils.getQueueInfo host (queueId.ToString())
+            let! queueInfo = TestUtils.getQueueInfo TestUtils.host (queueId.ToString())
 
             return queueInfo.count = 0
         }

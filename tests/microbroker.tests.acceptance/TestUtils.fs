@@ -5,6 +5,9 @@ open microbroker
 
 module TestUtils =
 
+    [<Literal>]
+    let host = "http://localhost:8080"
+
     let client = new System.Net.Http.HttpClient()
 
     let jsonContent (json: string) =

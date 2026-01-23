@@ -10,6 +10,7 @@
     <Compile Include="TestUtils.fs" />
     <Compile Include="MetadataApiTests.fs" />
     <Compile Include="ApiTests.fs" />
+    <Compile Include="TtaQueueTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

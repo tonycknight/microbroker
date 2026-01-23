@@ -21,6 +21,8 @@ module Char =
         allowedChars |> Seq.map toLowerInvariant |> Seq.contains value
 
 module Strings =
+    let str<'a> (value: 'a) = value.ToString()
+
     let appendIfMissing (suffix: string) (value: string) =
         if value.EndsWith(suffix) |> not then
             $"{value}{suffix}"
