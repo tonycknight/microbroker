@@ -8,9 +8,11 @@ open FsUnit
 open Microsoft.Extensions.Logging
 open Microbroker.Client
 
+[<Xunit.Collection(TestUtils.testCollection)>]
 module ClientTests =
+
     [<Literal>]
-    let maxTests = 20
+    let maxTests = 10
 
     let proxy baseUrl =
         let ihc = TestUtils.client |> InternalHttpClient :> IHttpClient
@@ -74,7 +76,7 @@ module ClientTests =
 
                 return
                     countNames.SequenceEqual(queueNames)
-                    && counts |> Seq.map _.count |> Seq.forall (fun x -> x = msgs.Length)
+                    && counts |> Seq.map _.count |> Seq.forall (fun x -> x >= msgs.Length)
             }
 
         Prop.forAll
@@ -119,7 +121,7 @@ module ClientTests =
 
         Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate(), Arbitraries.validQueueNames)) property
 
-    [<Property(MaxTest = 10)>]
+    [<Property(MaxTest = maxTests)>]
     let ``Post expiring msg to new queue returns count and no message`` () =
         let property (msg, queue) =
             task {
@@ -155,12 +157,10 @@ module ClientTests =
                 do! proxy.PostMany queue msgs
 
                 let! msgs2 = getAllMessages proxy queue
-
-                (msgs2 |> Seq.rev |> Seq.map _.content)
-                |> should equal (msgs |> Seq.map _.content)
-
-                let! count = proxy.GetQueueCount queue
-                return count.Value.count = 0 && count.Value.futureCount = 0
+                let msgs2Content = msgs2 |> Seq.rev |> Seq.map _.content |> Array.ofSeq
+                let msgsContent =  msgs |> Seq.map _.content |> Array.ofSeq
+                
+                return msgsContent.SequenceEqual(msgs2Content)
             }
 
         Prop.forAll

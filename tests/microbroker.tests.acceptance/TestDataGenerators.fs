@@ -59,9 +59,12 @@ module Arbitraries =
     type QueueMessages =
 
         static member Generate() =
-            let contents =
-                AlphaNumericString.Generate().Generator |> Gen.map (fun s -> $"Content{s}")
-
+            
+            let contents = 
+                ArbMap.defaults |> ArbMap.arbitrary<Guid>           
+                |> Arb.toGen
+                |> Gen.map (fun g -> $"message-content-{g}")
+                
             let messageTypes =
                 AlphaNumericString.Generate().Generator |> Gen.map (fun s -> $"MessageType{s}")
 

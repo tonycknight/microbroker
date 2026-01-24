@@ -6,7 +6,9 @@ open FsCheck.FSharp
 open FsCheck.Xunit
 open microbroker
 
+[<Xunit.Collection(TestUtils.testCollection)>]
 module PostMessageTests =
+
     [<Property>]
     let ``POST Queue message to invalid queue yields error`` () =
         let property (msg, name) =
