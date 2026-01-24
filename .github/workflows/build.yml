@@ -192,7 +192,7 @@ jobs:
 
       - name: Run Tests
         run: |
-          dotnet run --project ./tests/microbroker.tests.performance/microbroker.tests.performance.fsproj -c Release
+          dotnet run --project ./tests/microbroker.tests.performance/microbroker.tests.performance.fsproj -c Release -- --rate 3 --duration 180
 
       - name: Stop microbroker
         if: always()
