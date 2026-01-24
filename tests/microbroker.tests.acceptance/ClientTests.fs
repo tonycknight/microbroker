@@ -62,7 +62,7 @@ module ClientTests =
 
     [<Fact>]
     let ``GetQueueCount on unknown queue name returns None`` () =
-        task {            
+        task {
             let! count = queueName () |> (proxy TestUtils.host).GetQueueCount
 
             count |> should equal None
