@@ -36,6 +36,7 @@ module Arbitraries =
             && (s.Contains('#') |> not)
             && (s.Contains('?') |> not)
             && (s.Contains('/') |> not)
+            && s <> "."
 
         ArbMap.defaults
         |> ArbMap.arbitrary<string>
