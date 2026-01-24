@@ -30,7 +30,7 @@ jobs:
         run: |
           echo "build-version-number=$(git describe --tags --dirty)" >> $GITHUB_ENV        
       - name: Report version
-        run: echo "Building package ${{ env.build-version-number }}" >> $GITHUB_STEP_SUMMARY
+        run: echo "build-version-number ${{ env.build-version-number }}" >> $GITHUB_STEP_SUMMARY
 
   sca:
     name: SCA
