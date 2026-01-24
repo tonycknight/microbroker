@@ -1,4 +1,4 @@
-namespace Microbroker.Client.Tests
+namespace Microbroker.Client.Tests.Unit
 
 module Program =
     [<EntryPoint>]

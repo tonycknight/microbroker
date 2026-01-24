@@ -1,4 +1,4 @@
-﻿namespace Microbroker.Client.Tests
+﻿namespace Microbroker.Client.Tests.Unit
 
 open System
 open System.Net.Http

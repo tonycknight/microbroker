@@ -1,11 +1,11 @@
-﻿namespace Microbroker.Client.Tests
+﻿namespace Microbroker.Client.Tests.Unit
 
 open System
 open Microbroker.Client
 open NSubstitute
 open Xunit
 open FsUnit
-open Microbroker.Client.Tests.TestUtils
+open Microbroker.Client.Tests.Unit.TestUtils
 
 module MicrobrokerProxyTests =
 
