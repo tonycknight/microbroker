@@ -231,12 +231,11 @@ jobs:
       
       - name: Set Docker image name
         run: |
-          echo "docker-image-name=${{ env.docker-image-name }}:v${{ steps.variables.outputs.build-version-number }}" >> $GITHUB_ENV 
+          echo "docker-image-name=${{ env.docker-image-name }}:v${{ needs.variables.outputs.build-version-number }}" >> $GITHUB_ENV 
           echo "Building image ${{ env.docker-image-name }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Build docker image
-        run: docker build -f Dockerfile -t ${{ env.docker-image-name }} --build-arg BuildVersion=${{ steps.variables.outputs.build-version-number }} .
-
+        run: docker build -f Dockerfile -t ${{ env.docker-image-name }} --build-arg BuildVersion=${{ needs.variables.outputs.build-version-number }} .
       - name: Login to GitHub Container Registry
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         uses: docker/login-action@v3
