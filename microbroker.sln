@@ -33,6 +33,8 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "microbroker.tests.acceptanc
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "microbroker.tests.performance", "tests\microbroker.tests.performance\microbroker.tests.performance.fsproj", "{0699F3E3-6B52-4636-B4FB-4E1E7DAAEC88}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Microbroker.Client", "src\microbroker.client\Microbroker.Client.fsproj", "{4DD0BDE8-2315-8F73-A477-AD6C0A211B5A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,6 +57,10 @@ Global
 		{0699F3E3-6B52-4636-B4FB-4E1E7DAAEC88}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0699F3E3-6B52-4636-B4FB-4E1E7DAAEC88}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0699F3E3-6B52-4636-B4FB-4E1E7DAAEC88}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4DD0BDE8-2315-8F73-A477-AD6C0A211B5A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4DD0BDE8-2315-8F73-A477-AD6C0A211B5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4DD0BDE8-2315-8F73-A477-AD6C0A211B5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4DD0BDE8-2315-8F73-A477-AD6C0A211B5A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -65,6 +71,7 @@ Global
 		{B84B698C-D52A-482F-8487-5C058B7A1E88} = {543E4127-DC54-49F4-8418-E74C45203726}
 		{CF0F3C6F-9621-4B45-8A47-2DE91C703F52} = {543E4127-DC54-49F4-8418-E74C45203726}
 		{0699F3E3-6B52-4636-B4FB-4E1E7DAAEC88} = {543E4127-DC54-49F4-8418-E74C45203726}
+		{4DD0BDE8-2315-8F73-A477-AD6C0A211B5A} = {A2F69060-3787-4D7E-9AE3-80FEB5781A36}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {12BB7038-534F-44A1-B33A-E50506C59B81}
