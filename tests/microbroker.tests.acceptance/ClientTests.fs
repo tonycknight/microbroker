@@ -1,12 +1,17 @@
 namespace microbroker.tests.acceptance
 
 open System
+open FsCheck.FSharp
+open FsCheck.Xunit
 open FsUnit
 open Microsoft.Extensions.Logging
 open Microbroker.Client
 open Xunit
 
 module ClientTests =
+    [<Literal>]
+    let maxTests = 20
+
     let log () =
         NSubstitute.Substitute.For<ILoggerFactory>()
 
@@ -60,128 +65,129 @@ module ClientTests =
         }
 
 
-    [<Fact>]
-    let ``GetQueueCount on unknown queue name returns None`` () =
+    [<Property(MaxTest = maxTests)>]
+    let ``GetQueueCount on unknown queue name returns None`` (queueName: Guid) =
         task {
-            let! count = queueName () |> (proxy TestUtils.host).GetQueueCount
+            let! count = queueName.ToString() |> (proxy TestUtils.host).GetQueueCount
 
-            count |> should equal None
+            return count = None
         }
 
-    [<Fact>]
+    [<Property(MaxTest = maxTests)>]
     let ``GetQueueCount on known queue name returns count`` () =
-        task {
-            let proxy = proxy TestUtils.host
-            let queueName = queueName ()
-            let msg = msg ()
-            do! proxy.Post queueName msg
+        let property (msg, queueName) =
+            task {
+                let proxy = proxy TestUtils.host
+                do! proxy.Post queueName msg
 
-            let! count = proxy.GetQueueCount queueName
+                let! count = proxy.GetQueueCount queueName
 
-            let! _ = getAllMessages proxy queueName // drain the queue
+                let! msgs = getAllMessages proxy queueName // drain the queue
 
-            count.Value.count |> should equal 1
-            count.Value.futureCount |> should equal 0
-        }
+                return count.Value.count = 1
+                        && count.Value.futureCount = 0
+            }
 
-    [<Fact>]
+        Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate(), Arbitraries.validQueueNames)) property
+
+    [<Property(MaxTest = maxTests)>]
     let ``GetQueueCounts on known queue name returns counts`` () =
-        task {
-            let proxy = proxy TestUtils.host
-            let msg = msg ()
+        let property (msgs, queueName) =
+            task {
+                let proxy = proxy TestUtils.host
+                let queueNames = [| queueName |]
+                let msgs = Array.ofSeq msgs
+                do! msgs |> proxy.PostMany queueName
+                
+                let! counts = proxy.GetQueueCounts queueNames
 
-            let queueNames = [| 1..3 |] |> Array.map (fun _ -> queueName ())
+                let! _ = getFromAllQueues proxy queueNames // drain the queue
 
-            let posts = queueNames |> Array.map (fun q -> proxy.Post q msg)
+                (counts |> Seq.map _.name |> Seq.sort) |> should equal (queueNames |> Seq.sort)
+                (counts |> Seq.map _.count) |> Seq.forall (fun x -> x = msgs.Length) |> should equal true
 
-            let! r = System.Threading.Tasks.Task.WhenAll posts
+                return true
+            }
 
-            let! counts = proxy.GetQueueCounts queueNames
+        Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate() |> Arb.array, Arbitraries.validQueueNames)) property
 
-            let! _ = getFromAllQueues proxy queueNames // drain the queue
-
-            (counts |> Seq.map _.name |> Seq.sort) |> should equal (queueNames |> Seq.sort)
-            (counts |> Seq.map _.count) |> should equal (queueNames |> Seq.map (fun _ -> 1))
-        }
-
-
-    [<Fact>]
+    [<Property(MaxTest = maxTests)>]
     let ``GetQueueCounts on unknown queue name returns empty`` () =
-        task {
-            let proxy = proxy TestUtils.host
-            let msg = msg ()
+        let property (queueName) =
+            task {
+                let proxy = proxy TestUtils.host
+                
+                let! counts = proxy.GetQueueCounts [| queueName |]
 
-            let queueNames = [| 1..3 |] |> Array.map (fun _ -> queueName ())
+                return counts.Length = 0
+            }
 
-            let! counts = proxy.GetQueueCounts queueNames
+        Prop.forAll (Arbitraries.validQueueNames) property
 
-            counts.Length |> should equal 0
-        }
-
-
-    [<Fact>]
+    [<Property(MaxTest = maxTests)>]
     let ``Post to new queue returns count and message`` () =
-        task {
-            let proxy = proxy TestUtils.host
-            let queue = queueName ()
+        let property (msg, queueName) =
+            task {
+                let proxy = proxy TestUtils.host
+                
+                let! count = proxy.GetQueueCount queueName
+                count |> should equal None
 
-            let! count = proxy.GetQueueCount queue
-            count |> should equal None
+                do! proxy.Post queueName msg
 
-            let msg = msg ()
+                let! msg2 = proxy.GetNext queueName
 
-            do! proxy.Post queue msg
+                return 
+                    msg2.Value.content = msg.content
+                    && msg2.Value.messageType = msg.messageType
+            }
 
-            let! msg2 = proxy.GetNext queue
+        Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate(), Arbitraries.validQueueNames)) property
 
-            msg2.Value.content |> should equal msg.content
-            msg2.Value.messageType |> should equal msg.messageType
-        }
-
-    [<Fact>]
+    [<Property(MaxTest = 10)>]
     let ``Post expiring msg to new queue returns count and no message`` () =
-        task {
-            let proxy = proxy TestUtils.host
-            let queue = queueName ()
-            let expiry = TimeSpan.FromSeconds 5
+        let property (msg, queue) =
+            task {
+                let proxy = proxy TestUtils.host
+                let expiry = TimeSpan.FromSeconds 5
 
-            let! count = proxy.GetQueueCount queue
-            count |> should equal None
+                let! count = proxy.GetQueueCount queue
+                count |> should equal None
 
-            let msg = msg () |> MicrobrokerMessages.expiry (fun () -> expiry)
+                let msg = msg |> MicrobrokerMessages.expiry (fun () -> expiry)
 
-            do! proxy.Post queue msg
+                do! proxy.Post queue msg
 
-            let! count = proxy.GetQueueCount queue
-            count.Value.count |> should equal 1
+                let! count = proxy.GetQueueCount queue
+                count.Value.count |> should equal 1
 
-            do! System.Threading.Tasks.Task.Delay(expiry.Add(TimeSpan.FromSeconds 2))
+                do! System.Threading.Tasks.Task.Delay(expiry.Add(TimeSpan.FromSeconds 2))
 
-            let! msg2 = proxy.GetNext queue
+                let! msg2 = proxy.GetNext queue
 
-            msg2 |> should equal None
-        }
+                return msg2 = None
+            }
 
-    [<Fact>]
+        Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate(), Arbitraries.validQueueNames)) property
+
+    [<Property(MaxTest = maxTests, Replay = "(56462714136066267,10651721073463557731,31)")>]
     let ``PostMany to queue repeated posts are FIFO`` () =
-        task {
-            let proxy = proxy TestUtils.host
-            let queue = queueName ()
+        let property (msgs, queue) = 
+            task {
+                let proxy = proxy TestUtils.host
+                let msgs = msgs |> Array.ofSeq
 
-            let msgs = [| 1..3 |] |> Array.map (fun _ -> msg ())
+                do! proxy.PostMany queue msgs
 
-            do! proxy.PostMany queue msgs
+                let! msgs2 = getAllMessages proxy queue
 
-            let! count = proxy.GetQueueCount queue
-            count.Value.count |> should equal msgs.Length
-            count.Value.futureCount |> should equal 0
+                (msgs2 |> Seq.rev |> Seq.map _.content)
+                |> should equal (msgs |> Seq.map _.content)
 
-            let! msgs2 = getAllMessages proxy queue
+                let! count = proxy.GetQueueCount queue
+                return 
+                    count.Value.count = 0
+                    && count.Value.futureCount = 0
+            }
 
-            (msgs2 |> Seq.rev |> Seq.map _.content)
-            |> should equal (msgs |> Seq.map _.content)
-
-            let! count = proxy.GetQueueCount queue
-            count.Value.count |> should equal 0
-            count.Value.futureCount |> should equal 0
-        }
+        Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate() |> Arb.array, Arbitraries.validQueueNames)) property

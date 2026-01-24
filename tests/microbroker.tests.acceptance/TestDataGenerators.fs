@@ -43,6 +43,13 @@ module Arbitraries =
         |> Arb.filter filter
         |> Arb.filter (WebApiValidation.isValidQueueName >> not)
 
+    let validQueueNames =
+        ArbMap.defaults
+        |> ArbMap.arbitrary<Guid>
+        |> Arb.toGen
+        |> Gen.map (fun g -> $"queue{g}")
+        |> Arb.fromGen
+
     type AlphaNumericString =
 
         static member Generate() =
@@ -68,3 +75,14 @@ module Arbitraries =
                   expiry = now.AddHours 1
                   active = now.AddHours -1 })
             |> Arb.fromGen
+
+    type MicrobrokerMessages =
+        static member Generate() =
+            QueueMessages.Generate().Generator
+                |> Gen.map (fun msg -> {    
+                                        Microbroker.Client.MicrobrokerMessage.content = msg.content 
+                                        Microbroker.Client.MicrobrokerMessage.messageType = msg.messageType
+                                        Microbroker.Client.MicrobrokerMessage.created = msg.created
+                                        Microbroker.Client.MicrobrokerMessage.active = msg.active
+                                        Microbroker.Client.MicrobrokerMessage.expiry = msg.expiry })
+                |> Arb.fromGen
