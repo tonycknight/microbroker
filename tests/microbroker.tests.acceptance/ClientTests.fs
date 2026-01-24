@@ -25,15 +25,6 @@ module ClientTests =
         let log = log ()
         new MicrobrokerProxy(config, ihc, log) :> IMicrobrokerProxy
 
-    let queueName () =
-        $"integration_test_queue_{Guid.NewGuid().ToString()}"
-
-    let msg () =
-        MicrobrokerMessages.create ()
-        |> MicrobrokerMessages.content $"here I am {Guid.NewGuid().ToString()}"
-        |> MicrobrokerMessages.messageType $"message type {Guid.NewGuid().ToString()}"
-
-
     let getAllMessages proxy queue =
         let rec getAll (proxy: IMicrobrokerProxy) queue results =
             task {
@@ -66,12 +57,15 @@ module ClientTests =
 
 
     [<Property(MaxTest = maxTests)>]
-    let ``GetQueueCount on unknown queue name returns None`` (queueName: Guid) =
-        task {
-            let! count = queueName.ToString() |> (proxy TestUtils.host).GetQueueCount
+    let ``GetQueueCount on unknown queue name returns None`` () =
+        let property queueName =
+            task {
+                let! count = queueName.ToString() |> (proxy TestUtils.host).GetQueueCount
 
-            return count = None
-        }
+                return count = None
+            }
+
+        Prop.forAll Arbitraries.validQueueNames property
 
     [<Property(MaxTest = maxTests)>]
     let ``GetQueueCount on known queue name returns count`` () =
