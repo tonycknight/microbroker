@@ -6,10 +6,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="CommandLine.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="CommandLineParser.FSharp" Version="2.9.1" />
     <PackageReference Include="NBomber" Version="6.2.0" />
     <PackageReference Include="NBomber.FSharp" Version="0.0.5" />
     <PackageReference Include="NBomber.Http" Version="6.1.0" />

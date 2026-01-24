@@ -1,6 +1,7 @@
 ﻿namespace microbroker.tests.performance
 
 open System
+open CommandLine
 open microbroker
 open NBomber
 open NBomber.Contracts
@@ -56,27 +57,38 @@ module Program =
                 | x -> Response.fail x
         }
 
-    [<EntryPoint>]
-    let main argv =
-        
-        let host = argv |> Array.tryItem 0 |> Option.defaultValue "http://localhost:8080"
+    let runTests (options: CommandOptions) =
         let warmup = 15
-        let duration = 180
-        let rate = 100
-
-        let queuesUrl = $"{host}/queues/"
-        let messageUrl = $"{host}/queues/perftests/message/"
+                
+        let queuesUrl = $"{options.host}/queues/"
+        let messageUrl = $"{options.host}/queues/perftests/message/"
 
         use httpClient = Http.createDefaultClient()
         
         let result = 
             NBomberRunner.registerScenarios [ 
-                Scenario.create ("push message", pushMessage httpClient messageUrl) |> setWarmup warmup |> setSimulation rate duration; 
-                Scenario.create ("pull message", pullMessage httpClient messageUrl) |> setWarmup warmup |> setSimulation rate duration; 
-                Scenario.create ("get queues", getQueues httpClient queuesUrl) |> setWarmup warmup |> setSimulation rate duration
+                Scenario.create ("push message", pushMessage httpClient messageUrl) |> setWarmup warmup |> setSimulation options.rate options.duration; 
+                Scenario.create ("pull message", pullMessage httpClient messageUrl) |> setWarmup warmup |> setSimulation options.rate options.duration; 
+                Scenario.create ("get queues", getQueues httpClient queuesUrl) |> setWarmup warmup |> setSimulation options.rate options.duration
             ]
             |> NBomberRunner.run
+
+        result
+
+    [<EntryPoint>]
+    let main argv =        
+        let opts = Parser.Default.ParseArguments<CommandOptions>(argv)
         
-        match result.IsOk with
-        | true ->   0
-        | _ ->      1
+        match opts with
+        | :? Parsed<CommandOptions> as opts -> 
+            printf "rate: %A duration: %A host: %s" opts.Value.rate opts.Value.duration opts.Value.host
+            match (runTests opts.Value).IsOk with
+            | true ->   0
+            | _ ->      1
+        | :? NotParsed<CommandOptions> as notParsed -> 
+            printf "Invalid args: %A %A" argv  notParsed.Errors
+            1
+        | _ -> 
+            printf "Unknown error while parsing args: %A" argv
+            1
+        
