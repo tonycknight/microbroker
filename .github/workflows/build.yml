@@ -202,8 +202,8 @@ jobs:
       - name: Report Acceptance test results
         if: always()
         run: |
-          cat reports/**/nbomber_report_*.md >> $GITHUB_STEP_SUMMARY
-
+          find reports -name "nbomber_report_*.md" -print -quit | xargs -r cat >> $GITHUB_STEP_SUMMARY
+          
   build-publish-docker-image:
     name: Build & Publish docker image
     runs-on: ubuntu-latest
