@@ -1,12 +1,12 @@
 namespace microbroker.tests.acceptance
 
 open System
+open System.Linq
 open FsCheck.FSharp
 open FsCheck.Xunit
 open FsUnit
 open Microsoft.Extensions.Logging
 open Microbroker.Client
-open Xunit
 
 module ClientTests =
     [<Literal>]
@@ -82,8 +82,6 @@ module ClientTests =
 
                 let! count = proxy.GetQueueCount queueName
 
-                let! msgs = getAllMessages proxy queueName // drain the queue
-
                 return count.Value.count = 1
                         && count.Value.futureCount = 0
             }
@@ -101,12 +99,10 @@ module ClientTests =
                 
                 let! counts = proxy.GetQueueCounts queueNames
 
-                let! _ = getFromAllQueues proxy queueNames // drain the queue
-
-                (counts |> Seq.map _.name |> Seq.sort) |> should equal (queueNames |> Seq.sort)
-                (counts |> Seq.map _.count) |> Seq.forall (fun x -> x = msgs.Length) |> should equal true
-
-                return true
+                let countNames = counts |> Seq.map _.name |> Seq.sort |> Array.ofSeq
+                
+                return countNames.SequenceEqual(queueNames)
+                        && counts |> Seq.map _.count |> Seq.forall (fun x -> x = msgs.Length)
             }
 
         Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate() |> Arb.array, Arbitraries.validQueueNames)) property
@@ -137,9 +133,14 @@ module ClientTests =
 
                 let! msg2 = proxy.GetNext queueName
 
+                let eq = dateTimeOffsetWithLimits (TimeSpan.FromSeconds 1.)
+
                 return 
                     msg2.Value.content = msg.content
                     && msg2.Value.messageType = msg.messageType
+                    && eq msg2.Value.created msg.created
+                    && eq msg2.Value.expiry msg.expiry
+                    && eq msg2.Value.active msg.active
             }
 
         Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate(), Arbitraries.validQueueNames)) property
@@ -170,7 +171,7 @@ module ClientTests =
 
         Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate(), Arbitraries.validQueueNames)) property
 
-    [<Property(MaxTest = maxTests, Replay = "(56462714136066267,10651721073463557731,31)")>]
+    [<Property(MaxTest = maxTests)>]
     let ``PostMany to queue repeated posts are FIFO`` () =
         let property (msgs, queue) = 
             task {

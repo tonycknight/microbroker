@@ -47,7 +47,7 @@ module Arbitraries =
         ArbMap.defaults
         |> ArbMap.arbitrary<Guid>
         |> Arb.toGen
-        |> Gen.map (fun g -> $"queue{g}")
+        |> Gen.map (fun g -> $"queue{g}".ToLowerInvariant())
         |> Arb.fromGen
 
     type AlphaNumericString =

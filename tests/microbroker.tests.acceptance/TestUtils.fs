@@ -75,7 +75,7 @@ module TestUtils =
 [<AutoOpen>]
 module TestCombinators =
 
-    let dateTimeOffsetWithLimits (x: DateTimeOffset) (y: DateTimeOffset) =
+    let dateTimeOffsetWithLimits (diff: TimeSpan) (x: DateTimeOffset) (y: DateTimeOffset) =
         let delta = Math.Abs((x - y).TotalMilliseconds)
 
-        delta < (1000.)
+        delta < diff.TotalMilliseconds

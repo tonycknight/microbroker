@@ -24,7 +24,6 @@ module PostMessageTests =
 
         Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate(), Arbitraries.invalidQueueNames)) property
 
-
     [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
     let ``POST Queue message yields on first retrival`` (queueId: Guid, msg: QueueMessage) =
         task {
@@ -42,12 +41,13 @@ module PostMessageTests =
             let! json = getResponse.Content.ReadAsStringAsync()
             let result = MessageGenerators.fromJson json
 
+            let eq = dateTimeOffsetWithLimits (TimeSpan.FromSeconds 1.)
             return
                 result.messageType = msg.messageType
                 && result.content = msg.content
-                && (dateTimeOffsetWithLimits result.created msg.created)
-                && (dateTimeOffsetWithLimits result.active msg.active)
-                && (dateTimeOffsetWithLimits result.expiry msg.expiry)
+                && (eq result.created msg.created)
+                && (eq result.active msg.active)
+                && (eq result.expiry msg.expiry)
         }
 
     [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
