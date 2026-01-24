@@ -202,7 +202,7 @@ jobs:
       - name: Report Acceptance test results
         if: always()
         run: |
-          cat ./**/nbomber_report_*.md >> $GITHUB_STEP_SUMMARY
+          cat reports/**/nbomber_report_*.md >> $GITHUB_STEP_SUMMARY
 
   build-publish-docker-image:
     name: Build & Publish docker image
