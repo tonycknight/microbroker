@@ -12,17 +12,12 @@ module ClientTests =
     [<Literal>]
     let maxTests = 20
 
-    let log () =
-        NSubstitute.Substitute.For<ILoggerFactory>()
-
-    let config url =
-        { MicrobrokerConfiguration.brokerBaseUrl = url
-          throttleMaxTime = TimeSpan.FromSeconds 1. }
-
     let proxy baseUrl =
         let ihc = TestUtils.client |> InternalHttpClient :> IHttpClient
-        let config = config baseUrl
-        let log = log ()
+        let config = 
+            { MicrobrokerConfiguration.brokerBaseUrl = baseUrl
+              throttleMaxTime = TimeSpan.FromSeconds 1. }
+        let log = NSubstitute.Substitute.For<ILoggerFactory>()
         new MicrobrokerProxy(config, ihc, log) :> IMicrobrokerProxy
 
     let getAllMessages proxy queue =
@@ -36,25 +31,6 @@ module ClientTests =
             }
 
         getAll proxy queue []
-
-    let postAllQueues (proxy: IMicrobrokerProxy) queues msg =
-        task {
-            let posts = queues |> Array.map (fun q -> proxy.Post q msg)
-
-            let! r = System.Threading.Tasks.Task.WhenAll posts
-
-            ignore r
-        }
-
-    let getFromAllQueues (proxy: IMicrobrokerProxy) queues =
-        task {
-            let gets = queues |> Array.map (fun q -> getAllMessages proxy q)
-
-            let! r = System.Threading.Tasks.Task.WhenAll gets
-
-            return r |> Seq.collect id |> List.ofSeq
-        }
-
 
     [<Property(MaxTest = maxTests)>]
     let ``GetQueueCount on unknown queue name returns None`` () =
