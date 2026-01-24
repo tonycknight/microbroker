@@ -71,6 +71,8 @@ module Program =
                 Scenario.create ("pull message", pullMessage httpClient messageUrl) |> setWarmup warmup |> setSimulation options.rate options.duration; 
                 Scenario.create ("get queues", getQueues httpClient queuesUrl) |> setWarmup warmup |> setSimulation options.rate options.duration
             ]
+            |> NBomberRunner.withTestName "basic push/pull performance tests"
+            |> NBomberRunner.withTestSuite "microbroker_performance_tests"
             |> NBomberRunner.run
 
         result
