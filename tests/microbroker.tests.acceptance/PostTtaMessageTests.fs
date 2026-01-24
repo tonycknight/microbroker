@@ -34,7 +34,7 @@ module PostTtaMessageTests =
                     let! queueInfo = TestUtils.getQueueInfo TestUtils.host (Strings.str queueId)
 
                     if queueInfo.count = 0 || queueInfo.futureCount <> 0 then
-                        do! System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds 2)
+                        do! System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds 1)
                     else
                         let! retrievedMsgs = TestUtils.pullAllMessages TestUtils.host (Strings.str queueId)
 

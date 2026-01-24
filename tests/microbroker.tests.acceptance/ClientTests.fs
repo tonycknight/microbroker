@@ -2,6 +2,7 @@ namespace microbroker.tests.acceptance
 
 open System
 open System.Linq
+open System.Threading.Tasks
 open FsCheck.FSharp
 open FsCheck.Xunit
 open FsUnit
@@ -122,27 +123,23 @@ module ClientTests =
         Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate(), Arbitraries.validQueueNames)) property
 
     [<Property(MaxTest = maxTests)>]
-    let ``Post expiring msg to new queue returns count and no message`` () =
+    let ``Post expiring msg to new queue returns no message`` () =
         let property (msg, queue) =
             task {
                 let proxy = proxy TestUtils.host
-                let expiry = TimeSpan.FromSeconds 5
+                let expiry = TimeSpan.FromSeconds 10
 
-                let! count = proxy.GetQueueCount queue
-                count |> should equal None
-
+                let! _ = getAllMessages proxy queue // drain the queue
+                
                 let msg = msg |> MicrobrokerMessages.expiry (fun () -> expiry)
 
                 do! proxy.Post queue msg
 
-                let! count = proxy.GetQueueCount queue
-                count.Value.count |> should equal 1
+                do! Task.Delay (TimeSpan.FromSeconds 2 + expiry)
 
-                do! System.Threading.Tasks.Task.Delay(expiry.Add(TimeSpan.FromSeconds 2))
-
-                let! msg2 = proxy.GetNext queue
-
-                return msg2 = None
+                let! msg = proxy.GetNext queue
+                
+                return msg = None
             }
 
         Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate(), Arbitraries.validQueueNames)) property

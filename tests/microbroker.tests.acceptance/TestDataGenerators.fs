@@ -44,11 +44,11 @@ module Arbitraries =
         |> Arb.filter (WebApiValidation.isValidQueueName >> not)
 
     let validQueueNames =
-        let guids = ArbMap.defaults |> ArbMap.arbitrary<Guid>
-
-        Arb.zip (guids, guids)
+        
+        ArbMap.defaults 
+        |> ArbMap.arbitrary<Guid>
         |> Arb.toGen
-        |> Gen.map (fun (g1,g2) -> $"queue-{g1}{g2}".ToLowerInvariant())
+        |> Gen.map (fun g -> $"queue-{g}".ToLowerInvariant())
         |> Arb.fromGen
 
     type AlphaNumericString =
