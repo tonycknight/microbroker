@@ -114,7 +114,7 @@ jobs:
           link_missing_lines: true
           report_name: Code coverage summary
 
-  acceptance-tests:
+  server-acceptance-tests:
     name: Run Acceptance tests
     runs-on: ubuntu-latest
 
@@ -161,7 +161,7 @@ jobs:
           reporter: dotnet-trx
           token: ${{ secrets.GITHUB_TOKEN }}
 
-  performance-tests:
+  server-performance-tests:
     name: Run Performance tests
     runs-on: ubuntu-latest
 
@@ -207,7 +207,7 @@ jobs:
   build-publish-docker-image:
     name: Build & Publish docker image
     runs-on: ubuntu-latest
-    needs:   [ build, unit-tests, sca, acceptance-tests, performance-tests ]
+    needs:   [ build, unit-tests, sca, server-acceptance-tests, server-performance-tests ]
 
     steps:
       - uses: actions/checkout@v6
