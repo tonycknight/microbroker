@@ -7,12 +7,14 @@
     <Authors>Tony Knight</Authors>
     <Version>0.0.0</Version>
     <PackageId>Microbroker.Client</PackageId>
-    <RepositoryUrl>https://github.com/tonycknight/microbroker.client</RepositoryUrl>
-    <PackageProjectUrl>https://github.com/tonycknight/microbroker.client</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/tonycknight/microbroker</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/tonycknight/microbroker</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>    
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="" Visible="False" />
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Utils.fs" />
     <Compile Include="Http.fs" />
