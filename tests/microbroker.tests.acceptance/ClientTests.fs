@@ -14,9 +14,11 @@ module ClientTests =
 
     let proxy baseUrl =
         let ihc = TestUtils.client |> InternalHttpClient :> IHttpClient
-        let config = 
+
+        let config =
             { MicrobrokerConfiguration.brokerBaseUrl = baseUrl
               throttleMaxTime = TimeSpan.FromSeconds 1. }
+
         let log = NSubstitute.Substitute.For<ILoggerFactory>()
         new MicrobrokerProxy(config, ihc, log) :> IMicrobrokerProxy
 
@@ -52,8 +54,7 @@ module ClientTests =
 
                 let! count = proxy.GetQueueCount queueName
 
-                return count.Value.count = 1
-                        && count.Value.futureCount = 0
+                return count.Value.count = 1 && count.Value.futureCount = 0
             }
 
         Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate(), Arbitraries.validQueueNames)) property
@@ -66,23 +67,26 @@ module ClientTests =
                 let queueNames = [| queueName |]
                 let msgs = Array.ofSeq msgs
                 do! msgs |> proxy.PostMany queueName
-                
+
                 let! counts = proxy.GetQueueCounts queueNames
 
                 let countNames = counts |> Seq.map _.name |> Seq.sort |> Array.ofSeq
-                
-                return countNames.SequenceEqual(queueNames)
-                        && counts |> Seq.map _.count |> Seq.forall (fun x -> x = msgs.Length)
+
+                return
+                    countNames.SequenceEqual(queueNames)
+                    && counts |> Seq.map _.count |> Seq.forall (fun x -> x = msgs.Length)
             }
 
-        Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate() |> Arb.array, Arbitraries.validQueueNames)) property
+        Prop.forAll
+            (Arb.zip (Arbitraries.MicrobrokerMessages.Generate() |> Arb.array, Arbitraries.validQueueNames))
+            property
 
     [<Property(MaxTest = maxTests)>]
     let ``GetQueueCounts on unknown queue name returns empty`` () =
         let property (queueName) =
             task {
                 let proxy = proxy TestUtils.host
-                
+
                 let! counts = proxy.GetQueueCounts [| queueName |]
 
                 return counts.Length = 0
@@ -95,7 +99,7 @@ module ClientTests =
         let property (msg, queueName) =
             task {
                 let proxy = proxy TestUtils.host
-                
+
                 let! count = proxy.GetQueueCount queueName
                 count |> should equal None
 
@@ -105,7 +109,7 @@ module ClientTests =
 
                 let eq = dateTimeOffsetWithLimits (TimeSpan.FromSeconds 1.)
 
-                return 
+                return
                     msg2.Value.content = msg.content
                     && msg2.Value.messageType = msg.messageType
                     && eq msg2.Value.created msg.created
@@ -143,7 +147,7 @@ module ClientTests =
 
     [<Property(MaxTest = maxTests)>]
     let ``PostMany to queue repeated posts are FIFO`` () =
-        let property (msgs, queue) = 
+        let property (msgs, queue) =
             task {
                 let proxy = proxy TestUtils.host
                 let msgs = msgs |> Array.ofSeq
@@ -156,9 +160,9 @@ module ClientTests =
                 |> should equal (msgs |> Seq.map _.content)
 
                 let! count = proxy.GetQueueCount queue
-                return 
-                    count.Value.count = 0
-                    && count.Value.futureCount = 0
+                return count.Value.count = 0 && count.Value.futureCount = 0
             }
 
-        Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate() |> Arb.array, Arbitraries.validQueueNames)) property
+        Prop.forAll
+            (Arb.zip (Arbitraries.MicrobrokerMessages.Generate() |> Arb.array, Arbitraries.validQueueNames))
+            property

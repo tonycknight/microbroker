@@ -43,6 +43,7 @@ module PostMessageTests =
                 let result = MessageGenerators.fromJson json
 
                 let eq = dateTimeOffsetWithLimits (TimeSpan.FromSeconds 1.)
+
                 return
                     result.messageType = msg.messageType
                     && result.content = msg.content
@@ -103,7 +104,7 @@ module PostMessageTests =
 
     [<Property(MaxTest = 10)>]
     let ``POST Queue messages set queue stats`` () =
-        let property (messages, queueId) = 
+        let property (messages, queueId) =
             task {
                 let queue = queueId.ToString()
                 let uri = $"{TestUtils.host}/queues/{queue}/messages/"

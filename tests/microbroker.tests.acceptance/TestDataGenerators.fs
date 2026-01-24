@@ -79,10 +79,10 @@ module Arbitraries =
     type MicrobrokerMessages =
         static member Generate() =
             QueueMessages.Generate().Generator
-                |> Gen.map (fun msg -> {    
-                                        Microbroker.Client.MicrobrokerMessage.content = msg.content 
-                                        Microbroker.Client.MicrobrokerMessage.messageType = msg.messageType
-                                        Microbroker.Client.MicrobrokerMessage.created = msg.created
-                                        Microbroker.Client.MicrobrokerMessage.active = msg.active
-                                        Microbroker.Client.MicrobrokerMessage.expiry = msg.expiry })
-                |> Arb.fromGen
+            |> Gen.map (fun msg ->
+                { Microbroker.Client.MicrobrokerMessage.content = msg.content
+                  Microbroker.Client.MicrobrokerMessage.messageType = msg.messageType
+                  Microbroker.Client.MicrobrokerMessage.created = msg.created
+                  Microbroker.Client.MicrobrokerMessage.active = msg.active
+                  Microbroker.Client.MicrobrokerMessage.expiry = msg.expiry })
+            |> Arb.fromGen
