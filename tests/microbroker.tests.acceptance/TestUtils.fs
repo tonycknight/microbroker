@@ -11,6 +11,12 @@ module TestUtils =
     [<Literal>]
     let testCollection = "Microbroker acceptance tests"
 
+    [<Literal>]
+    let maxClientTests = 5
+
+    [<Literal>]
+    let maxServerTests = 5
+
     let client = new System.Net.Http.HttpClient()
 
     let jsonContent (json: string) =

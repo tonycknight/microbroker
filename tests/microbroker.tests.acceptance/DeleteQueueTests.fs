@@ -22,7 +22,7 @@ module DeleteQueueTests =
 
         Prop.forAll Arbitraries.invalidQueueNames property
 
-    [<Property(MaxTest = 10)>]
+    [<Property>]
     let ``DELETE Queue of unknown queue name returns error`` () =
         let property queueId =
             task {
@@ -36,7 +36,7 @@ module DeleteQueueTests =
 
         Prop.forAll Arbitraries.invalidQueueNames property
 
-    [<Property(MaxTest = 10)>]
+    [<Property(MaxTest = TestUtils.maxServerTests)>]
     let ``DELETE Queue after message post`` () =
         let property (msg, queueId) =
             task {

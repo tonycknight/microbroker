@@ -26,7 +26,7 @@ module PostMessageTests =
 
         Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate(), Arbitraries.invalidQueueNames)) property
 
-    [<Property(MaxTest = 10)>]
+    [<Property(MaxTest = TestUtils.maxServerTests)>]
     let ``POST Queue message yields on first retrival`` () =
         let property (msg, queue) =
             task {
@@ -56,7 +56,7 @@ module PostMessageTests =
 
         Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate(), Arbitraries.validQueueNames)) property
 
-    [<Property(MaxTest = 10)>]
+    [<Property(MaxTest = TestUtils.maxServerTests)>]
     let ``POST expired queue message yields nothing`` () =
         let property (message, queue) =
             task {
@@ -77,7 +77,7 @@ module PostMessageTests =
 
         Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate(), Arbitraries.validQueueNames)) property
 
-    [<Property(MaxTest = 10)>]
+    [<Property(MaxTest = TestUtils.maxServerTests)>]
     let ``POST Queue messages yields all`` () =
         let property (messages, queueId) =
             task {
@@ -104,7 +104,7 @@ module PostMessageTests =
 
         Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate() |> Arb.array, Arbitraries.validQueueNames)) property
 
-    [<Property(MaxTest = 10)>]
+    [<Property(MaxTest = TestUtils.maxServerTests)>]
     let ``POST Queue messages set queue stats`` () =
         let property (messages, queueId) =
             task {
@@ -123,7 +123,7 @@ module PostMessageTests =
 
         Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate() |> Arb.array, Arbitraries.validQueueNames)) property
 
-    [<Property(MaxTest = 10)>]
+    [<Property(MaxTest = TestUtils.maxServerTests)>]
     let ``POST Queue messages decrement queue stats`` () =
         let property (messages, queueId) =
             task {

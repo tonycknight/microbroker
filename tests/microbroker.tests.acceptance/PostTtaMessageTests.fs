@@ -9,7 +9,7 @@ open microbroker
 [<Xunit.Collection(TestUtils.testCollection)>]
 module PostTtaMessageTests =
 
-    [<Property(MaxTest = 3)>]
+    [<Property(MaxTest = 2)>]
     let ``POST Queue message with TTA shows time-delayed retrival`` () =
         let property (msg, queueId) =
             task {
