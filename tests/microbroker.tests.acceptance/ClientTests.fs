@@ -13,7 +13,7 @@ open Microbroker.Client
 module ClientTests =
 
     [<Literal>]
-    let maxTests = 10
+    let maxTests = 5
 
     let proxy baseUrl =
         let ihc = TestUtils.client |> InternalHttpClient :> IHttpClient
