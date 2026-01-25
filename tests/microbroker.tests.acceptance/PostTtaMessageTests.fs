@@ -6,10 +6,9 @@ open FsCheck.Xunit
 open microbroker
 
 // TTA testing is time consuming as the time cannot be mocked out of the system. These scenarios are kept separate for XUnit parallelism.
-[<Xunit.Collection(TestUtils.testCollection)>]
 module PostTtaMessageTests =
 
-    [<Property(MaxTest = 3)>]
+    [<Property(MaxTest = 2)>]
     let ``POST Queue message with TTA shows time-delayed retrival`` () =
         let property (msg, queueId) =
             task {

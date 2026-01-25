@@ -5,15 +5,10 @@ open System.Linq
 open System.Threading.Tasks
 open FsCheck.FSharp
 open FsCheck.Xunit
-open FsUnit
 open Microsoft.Extensions.Logging
 open Microbroker.Client
 
-[<Xunit.Collection(TestUtils.testCollection)>]
 module ClientTests =
-
-    [<Literal>]
-    let maxTests = 10
 
     let proxy baseUrl =
         let ihc = TestUtils.client |> InternalHttpClient :> IHttpClient
@@ -37,18 +32,33 @@ module ClientTests =
 
         getAll proxy queue []
 
-    [<Property(MaxTest = maxTests)>]
-    let ``GetQueueCount on unknown queue name returns None`` () =
+    [<Property>]
+    let ``GetQueueCount on invalid queue name returns None`` () =
         let property queueName =
             task {
-                let! count = queueName.ToString() |> (proxy TestUtils.host).GetQueueCount
+                let! count = queueName |> (proxy TestUtils.host).GetQueueCount
 
                 return count = None
             }
 
+        Prop.forAll Arbitraries.invalidQueueNames property
+
+    [<Property(MaxTest = TestUtils.maxClientTests)>]
+    let ``GetQueueCount on unknown queue name returns queue`` () =
+        let property queueName =
+            task {
+                let! count = queueName |> (proxy TestUtils.host).GetQueueCount
+
+                return
+                    count.IsSome
+                    && count.Value.name = queueName
+                    && count.Value.count = 0
+                    && count.Value.futureCount = 0
+            }
+
         Prop.forAll Arbitraries.validQueueNames property
 
-    [<Property(MaxTest = maxTests)>]
+    [<Property(MaxTest = TestUtils.maxClientTests)>]
     let ``GetQueueCount on known queue name returns count`` () =
         let property (msg, queueName) =
             task {
@@ -62,7 +72,7 @@ module ClientTests =
 
         Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate(), Arbitraries.validQueueNames)) property
 
-    [<Property(MaxTest = maxTests)>]
+    [<Property(MaxTest = TestUtils.maxClientTests)>]
     let ``GetQueueCounts on known queue name returns counts`` () =
         let property (msgs, queueName) =
             task {
@@ -84,7 +94,7 @@ module ClientTests =
             (Arb.zip (Arbitraries.MicrobrokerMessages.Generate() |> Arb.array, Arbitraries.validQueueNames))
             property
 
-    [<Property(MaxTest = maxTests)>]
+    [<Property(MaxTest = TestUtils.maxClientTests)>]
     let ``GetQueueCounts on unknown queue name returns empty`` () =
         let property (queueName) =
             task {
@@ -92,19 +102,46 @@ module ClientTests =
 
                 let! counts = proxy.GetQueueCounts [| queueName |]
 
-                return counts.Length = 0
+                return
+                    counts.Length = 1
+                    && counts.[0].name = queueName
+                    && counts.[0].count = 0
+                    && counts.[0].futureCount = 0
             }
 
         Prop.forAll (Arbitraries.validQueueNames) property
 
-    [<Property(MaxTest = maxTests)>]
-    let ``Post to new queue returns count and message`` () =
+    [<Property(MaxTest = TestUtils.maxClientTests)>]
+    let ``GetNext on invalid queue returns None`` () =
         let property (msg, queueName) =
             task {
                 let proxy = proxy TestUtils.host
 
-                let! count = proxy.GetQueueCount queueName
-                count |> should equal None
+                let! msg = proxy.GetNext queueName
+
+                return msg = None
+            }
+
+        Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate(), Arbitraries.invalidQueueNames)) property
+
+    [<Property(MaxTest = TestUtils.maxClientTests)>]
+    let ``GetNext on unknown queue returns None`` () =
+        let property (msg, queueName) =
+            task {
+                let proxy = proxy TestUtils.host
+
+                let! msg = proxy.GetNext queueName
+
+                return msg = None
+            }
+
+        Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate(), Arbitraries.validQueueNames)) property
+
+    [<Property(MaxTest = TestUtils.maxClientTests)>]
+    let ``Post to new queue returns count and message`` () =
+        let property (msg, queueName) =
+            task {
+                let proxy = proxy TestUtils.host
 
                 do! proxy.Post queueName msg
 
@@ -122,7 +159,7 @@ module ClientTests =
 
         Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate(), Arbitraries.validQueueNames)) property
 
-    [<Property(MaxTest = maxTests)>]
+    [<Property(MaxTest = TestUtils.maxClientTests)>]
     let ``Post expiring msg to new queue returns no message`` () =
         let property (msg, queue) =
             task {
@@ -144,7 +181,7 @@ module ClientTests =
 
         Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate(), Arbitraries.validQueueNames)) property
 
-    [<Property(MaxTest = maxTests)>]
+    [<Property(MaxTest = TestUtils.maxClientTests)>]
     let ``PostMany to queue repeated posts are FIFO`` () =
         let property (msgs, queue) =
             task {

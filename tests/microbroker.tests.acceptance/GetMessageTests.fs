@@ -5,7 +5,6 @@ open FsCheck.FSharp
 open FsCheck.Xunit
 open microbroker
 
-[<Xunit.Collection(TestUtils.testCollection)>]
 module GetMessageTests =
 
     [<Property>]
@@ -22,7 +21,7 @@ module GetMessageTests =
 
         Prop.forAll Arbitraries.invalidQueueNames property
 
-    [<Property(MaxTest = 10)>]
+    [<Property(MaxTest = TestUtils.maxServerTests)>]
     let ``GET Queue of unknown queue name returns empty stats`` () =
         let property queue =
             task {
@@ -47,7 +46,7 @@ module GetMessageTests =
 
         Prop.forAll Arbitraries.invalidQueueNames property
 
-    [<Property(MaxTest = 10)>]
+    [<Property(MaxTest = TestUtils.maxServerTests)>]
     let ``GET Queue message of unknown queue name returns 404`` () =
         let property queueId =
             task {
