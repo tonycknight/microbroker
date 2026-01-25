@@ -2,7 +2,7 @@
 
 [![Build & Release](https://github.com/tonycknight/microbroker/actions/workflows/build.yml/badge.svg)](https://github.com/tonycknight/microbroker/actions/workflows/build.yml)
 
-![NuGet Version](https://img.shields.io/nuget/:variant/Microbroker.Client)
+[![Nuget](https://img.shields.io/nuget/v/Microbroker.Client)](https://www.nuget.org/packages/Microbroker.Client/)
 
 A _very simple_ message brokerage service.
 
