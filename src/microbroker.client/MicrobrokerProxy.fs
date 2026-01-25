@@ -1,6 +1,5 @@
 ﻿namespace Microbroker.Client
 
-open System
 open System.Net
 open System.Threading.Tasks
 open Microsoft.Extensions.Logging
@@ -25,7 +24,7 @@ type IMicrobrokerProxy =
 type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHttpClient, logger: ILoggerFactory) =
     let log = logger.CreateLogger<MicrobrokerProxy>()
 
-    let getNextFromBroker (queue: string) =
+    let getNext (queue: string) =
         task {
             let url = $"{config.brokerBaseUrl |> Strings.trimSlash}/queues/{queue}/message/"
             let! rep = httpClient.GetAsync url
@@ -43,7 +42,7 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
         }
 
 
-    let postManyToBroker (queue: string) (messages: seq<MicrobrokerMessage>) =
+    let postMany (queue: string) (messages: seq<MicrobrokerMessage>) =
         task {
             let messages = Array.ofSeq messages
 
@@ -61,31 +60,6 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
                     log.LogError(ex, ex.Message)
         }
 
-    let queueCounts () =
-        task {
-            let url = $"{Strings.trimSlash config.brokerBaseUrl}/queues/"
-            let! resp = httpClient.GetAsync url
-
-            return
-                match resp with
-                | HttpOkRequestResponse(_, body, _, _) ->
-                    Newtonsoft.Json.JsonConvert.DeserializeObject<MicrobrokerCount[]>(body)
-                | resp ->
-                    HttpRequestResponse.loggable resp |> log.LogError
-                    Array.empty
-        }
-
-    let filteredQueueCounts queues =
-        task {
-            let! counts = queueCounts ()
-
-            let isMatch (qc: MicrobrokerCount) =
-                queues
-                |> Seq.exists (fun q -> StringComparer.InvariantCultureIgnoreCase.Equals(qc.name, q))
-
-            return counts |> Array.filter isMatch
-        }
-
     let queueCount queue =
         task {
             let url = $"{Strings.trimSlash config.brokerBaseUrl}/queues/{queue}/"
@@ -101,12 +75,12 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
         }
 
     interface IMicrobrokerProxy with
-        member this.Post queue message = postManyToBroker queue [ message ]
+        member this.Post queue message = postMany queue [ message ]
 
-        member this.PostMany queue messages = postManyToBroker queue messages
+        member this.PostMany queue messages = postMany queue messages
 
         member this.GetNext queue =
-            Throttling.exponentialWait config.throttleMaxTime (fun () -> getNextFromBroker queue)
+            Throttling.exponentialWait config.throttleMaxTime (fun () -> getNext queue)
 
         member this.GetQueueCounts(queues: string[]) =
             task {
