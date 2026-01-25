@@ -9,7 +9,7 @@ open FsUnit
 open Microsoft.Extensions.Logging
 open Microbroker.Client
 
-[<Xunit.Collection(TestUtils.testCollection)>]
+// TODO: [<Xunit.Collection(TestUtils.testCollection)>]
 module ClientTests =
 
     let proxy baseUrl =

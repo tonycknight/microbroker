@@ -6,7 +6,7 @@ open FsCheck.FSharp
 open FsCheck.Xunit
 open microbroker
 
-[<Xunit.Collection(TestUtils.testCollection)>]
+// TODO: [<Xunit.Collection(TestUtils.testCollection)>]
 module PostMessageTests =
 
     [<Property>]
