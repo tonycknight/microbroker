@@ -25,10 +25,15 @@ jobs:
     outputs:
       build-version-number: ${{ env.build-version-number }}
     steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
       - name: Set BuildVersion for release
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         run: |
-          echo "build-version-number=$(git describe --tags --dirty)" >> $GITHUB_ENV        
+          echo "build-version-number=$(git describe --tags --dirty)" >> $GITHUB_ENV
+          
       - name: Report version
         run: echo "build-version-number ${{ env.build-version-number }}" >> $GITHUB_STEP_SUMMARY
 
