@@ -6,7 +6,9 @@ open FsCheck.FSharp
 open FsCheck.Xunit
 open microbroker
 
+[<Xunit.Collection(TestUtils.testCollection)>]
 module PostMessageTests =
+
     [<Property>]
     let ``POST Queue message to invalid queue yields error`` () =
         let property (msg, name) =
@@ -24,114 +26,127 @@ module PostMessageTests =
 
         Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate(), Arbitraries.invalidQueueNames)) property
 
+    [<Property(MaxTest = 10)>]
+    let ``POST Queue message yields on first retrival`` () =
+        let property (msg, queue) =
+            task {
+                let uri = $"{TestUtils.host}/queues/{queue}/message/"
 
-    [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
-    let ``POST Queue message yields on first retrival`` (queueId: Guid, msg: QueueMessage) =
-        task {
-            let uri = $"{TestUtils.host}/queues/{queueId}/message/"
+                let content = msg |> MessageGenerators.toJson |> TestUtils.jsonContent
 
-            let content = msg |> MessageGenerators.toJson |> TestUtils.jsonContent
+                use! postResponse = TestUtils.client.PostAsync(uri, content)
+                postResponse.EnsureSuccessStatusCode() |> ignore
 
-            use! postResponse = TestUtils.client.PostAsync(uri, content)
-            postResponse.EnsureSuccessStatusCode() |> ignore
+                // Fetch from the head of the queue
+                use! getResponse = TestUtils.client.GetAsync(uri)
+                getResponse.EnsureSuccessStatusCode() |> ignore
 
-            // Fetch from the head of the queue
-            use! getResponse = TestUtils.client.GetAsync(uri)
-            getResponse.EnsureSuccessStatusCode() |> ignore
+                let! json = getResponse.Content.ReadAsStringAsync()
+                let result = MessageGenerators.fromJson json
 
-            let! json = getResponse.Content.ReadAsStringAsync()
-            let result = MessageGenerators.fromJson json
+                let eq = dateTimeOffsetWithLimits (TimeSpan.FromSeconds 1.)
 
-            return
-                result.messageType = msg.messageType
-                && result.content = msg.content
-                && (dateTimeOffsetWithLimits result.created msg.created)
-                && (dateTimeOffsetWithLimits result.active msg.active)
-                && (dateTimeOffsetWithLimits result.expiry msg.expiry)
-        }
+                return
+                    result.messageType = msg.messageType
+                    && result.content = msg.content
+                    && (eq result.created msg.created)
+                    && (eq result.active msg.active)
+                    && (eq result.expiry msg.expiry)
+            }
 
-    [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
-    let ``POST expired queue message yields nothing`` (queueId: Guid, message: QueueMessage) =
-        task {
-            let uri = $"{TestUtils.host}/queues/{queueId}/message/"
+        Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate(), Arbitraries.validQueueNames)) property
 
-            let message =
-                { message with
-                    expiry = DateTimeOffset.UtcNow.AddMinutes -1 }
+    [<Property(MaxTest = 10)>]
+    let ``POST expired queue message yields nothing`` () =
+        let property (message, queue) =
+            task {
+                let uri = $"{TestUtils.host}/queues/{queue}/message/"
 
-            let content = message |> MessageGenerators.toJson |> TestUtils.jsonContent
+                let message =
+                    { message with
+                        QueueMessage.expiry = DateTimeOffset.UtcNow.AddMinutes -1 }
 
-            use! postResponse = TestUtils.client.PostAsync(uri, content)
-            postResponse.EnsureSuccessStatusCode() |> ignore
+                let content = message |> MessageGenerators.toJson |> TestUtils.jsonContent
 
-            use! getResponse = TestUtils.client.GetAsync(uri)
-            return getResponse.StatusCode = Net.HttpStatusCode.NotFound
-        }
+                use! postResponse = TestUtils.client.PostAsync(uri, content)
+                postResponse.EnsureSuccessStatusCode() |> ignore
 
-    [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
-    let ``POST Queue messages yields all`` (queueId: Guid, messages: QueueMessage[]) =
+                use! getResponse = TestUtils.client.GetAsync(uri)
+                return getResponse.StatusCode = Net.HttpStatusCode.NotFound
+            }
 
-        task {
-            let queue = queueId.ToString()
-            let uri = $"{TestUtils.host}/queues/{queue}/messages/"
+        Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate(), Arbitraries.validQueueNames)) property
 
-            let content = messages |> MessageGenerators.toJsonArray |> TestUtils.jsonContent
+    [<Property(MaxTest = 10)>]
+    let ``POST Queue messages yields all`` () =
+        let property (messages, queueId) =
+            task {
+                let queue = queueId.ToString()
+                let uri = $"{TestUtils.host}/queues/{queue}/messages/"
 
-            use! postResponse = TestUtils.client.PostAsync(uri, content)
-            postResponse.EnsureSuccessStatusCode() |> ignore
+                let content = messages |> MessageGenerators.toJsonArray |> TestUtils.jsonContent
 
-            let! fetchedMessages = TestUtils.pullAllMessages TestUtils.host queue
+                use! postResponse = TestUtils.client.PostAsync(uri, content)
+                postResponse.EnsureSuccessStatusCode() |> ignore
 
-            let fetchedPairs =
-                fetchedMessages |> Seq.map (fun m -> (m.messageType, m.content)) |> Seq.sort
+                let! fetchedMessages = TestUtils.pullAllMessages TestUtils.host queue
 
-            let originalPairs =
-                messages |> Seq.map (fun m -> (m.messageType, m.content)) |> Seq.sort
+                let fetchedPairs =
+                    fetchedMessages |> Seq.map (fun m -> (m.messageType, m.content)) |> Seq.sort
 
-            return
-                List.length fetchedMessages = messages.Length
-                && originalPairs.SequenceEqual(fetchedPairs)
-        }
+                let originalPairs =
+                    messages |> Seq.map (fun m -> (m.messageType, m.content)) |> Seq.sort
 
-    [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
-    let ``POST Queue messages set queue stats`` (queueId: Guid, messages: QueueMessage[]) =
+                return
+                    List.length fetchedMessages = messages.Length
+                    && originalPairs.SequenceEqual(fetchedPairs)
+            }
 
-        task {
-            let queue = queueId.ToString()
-            let uri = $"{TestUtils.host}/queues/{queue}/messages/"
+        Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate() |> Arb.array, Arbitraries.validQueueNames)) property
 
-            let content = messages |> MessageGenerators.toJsonArray |> TestUtils.jsonContent
+    [<Property(MaxTest = 10)>]
+    let ``POST Queue messages set queue stats`` () =
+        let property (messages, queueId) =
+            task {
+                let queue = queueId.ToString()
+                let uri = $"{TestUtils.host}/queues/{queue}/messages/"
 
-            use! postResponse = TestUtils.client.PostAsync(uri, content)
-            postResponse.EnsureSuccessStatusCode() |> ignore
+                let content = messages |> MessageGenerators.toJsonArray |> TestUtils.jsonContent
 
-            let! result = TestUtils.getQueueInfo TestUtils.host queue
+                use! postResponse = TestUtils.client.PostAsync(uri, content)
+                postResponse.EnsureSuccessStatusCode() |> ignore
 
-            return result.count = messages.Length && result.name = queue && result.futureCount = 0
-        }
+                let! result = TestUtils.getQueueInfo TestUtils.host queue
 
-    [<Property(MaxTest = 10, Arbitrary = [| typeof<Arbitraries.QueueMessages> |])>]
-    let ``POST Queue messages decrement queue stats`` (queueId: Guid, messages: QueueMessage[]) =
+                return result.count = messages.Length && result.name = queue && result.futureCount = 0
+            }
 
-        task {
-            let queue = queueId.ToString()
-            let uri = $"{TestUtils.host}/queues/{queue}/messages/"
+        Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate() |> Arb.array, Arbitraries.validQueueNames)) property
 
-            let content = messages |> MessageGenerators.toJsonArray |> TestUtils.jsonContent
+    [<Property(MaxTest = 10)>]
+    let ``POST Queue messages decrement queue stats`` () =
+        let property (messages, queueId) =
+            task {
+                let queue = queueId.ToString()
+                let uri = $"{TestUtils.host}/queues/{queue}/messages/"
 
-            use! postResponse = TestUtils.client.PostAsync(uri, content)
-            postResponse.EnsureSuccessStatusCode() |> ignore
+                let content = messages |> MessageGenerators.toJsonArray |> TestUtils.jsonContent
 
-            let! drainResults = TestUtils.pullAllQueueInfos TestUtils.host queue
+                use! postResponse = TestUtils.client.PostAsync(uri, content)
+                postResponse.EnsureSuccessStatusCode() |> ignore
 
-            let counts = drainResults |> List.map _.count
-            let expected = [ 0 .. messages.Length ] |> List.map int64
+                let! drainResults = TestUtils.pullAllQueueInfos TestUtils.host queue
 
-            return
-                List.length counts = messages.Length + 1
-                // Verify that each count matches
-                && (counts |> List.zip expected |> List.map (fun (x, y) -> x = y) |> List.forall id)
-        }
+                let counts = drainResults |> List.map _.count
+                let expected = [ 0 .. messages.Length ] |> List.map int64
+
+                return
+                    List.length counts = messages.Length + 1
+                    // Verify that each count matches
+                    && (counts |> List.zip expected |> List.map (fun (x, y) -> x = y) |> List.forall id)
+            }
+
+        Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate() |> Arb.array, Arbitraries.validQueueNames)) property
 
     [<Property>]
     let ``POST Queue messages to invalid queue yields error`` () =

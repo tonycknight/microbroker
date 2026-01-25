@@ -8,6 +8,9 @@ module TestUtils =
     [<Literal>]
     let host = "http://localhost:8080"
 
+    [<Literal>]
+    let testCollection = "Microbroker acceptance tests"
+
     let client = new System.Net.Http.HttpClient()
 
     let jsonContent (json: string) =
@@ -75,7 +78,7 @@ module TestUtils =
 [<AutoOpen>]
 module TestCombinators =
 
-    let dateTimeOffsetWithLimits (x: DateTimeOffset) (y: DateTimeOffset) =
+    let dateTimeOffsetWithLimits (diff: TimeSpan) (x: DateTimeOffset) (y: DateTimeOffset) =
         let delta = Math.Abs((x - y).TotalMilliseconds)
 
-        delta < (1000.)
+        delta < diff.TotalMilliseconds

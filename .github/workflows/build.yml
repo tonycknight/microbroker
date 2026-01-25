@@ -19,9 +19,23 @@ env:
   docker-image-name: ghcr.io/tonycknight/microbroker
   
 jobs:
+  variables:
+    name: Set variables
+    runs-on: ubuntu-latest
+    outputs:
+      build-version-number: ${{ env.build-version-number }}
+    steps:
+      - name: Set BuildVersion for release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        run: |
+          echo "build-version-number=$(git describe --tags --dirty)" >> $GITHUB_ENV        
+      - name: Report version
+        run: echo "build-version-number ${{ env.build-version-number }}" >> $GITHUB_STEP_SUMMARY
+
   sca:
     name: SCA
     runs-on: ubuntu-latest
+    needs: [ variables ]
 
     steps:
       - uses: actions/checkout@v6
@@ -37,11 +51,11 @@ jobs:
           vulnerable: true
           deprecated: true
           transitives: true
-    
   
   build:
     name: Build
     runs-on: ubuntu-latest
+    needs: [ variables ]
 
     steps:
       - uses: actions/checkout@v6
@@ -57,6 +71,7 @@ jobs:
   unit-tests:
     name: Run Unit Tests
     runs-on: ubuntu-latest
+    needs: [ variables ]
 
     steps:
       - uses: actions/checkout@v6
@@ -117,6 +132,7 @@ jobs:
   acceptance-tests:
     name: Run Acceptance tests
     runs-on: ubuntu-latest
+    needs: [ variables ]
 
     steps:
       - uses: actions/checkout@v6
@@ -124,9 +140,10 @@ jobs:
       - name: Build docker image
         run: docker build -f Dockerfile -t microbroker:localbuild --build-arg BuildVersion=0.0.0-localbuild .
 
-      - name: Set docker network name
+      - name: Set docker vars
         run: |
           echo "docker-network=microbroker-acceptance-tests-${{ github.run_number }}" >> $GITHUB_ENV
+          echo "docker-container=microbroker-acceptance-tests-${{ github.run_number }}" >> $GITHUB_ENV
           
       - name: Create docker network
         run: |
@@ -141,7 +158,7 @@ jobs:
 
       - name: Start microbroker
         run: |
-          docker run --name microbroker-acceptancetests --detach --network=${{ env.docker-network }} -it --rm -p 8080:8080 microbroker:localbuild --mongoConnection=mongodb://mongodb:27017
+          docker run --name ${{ env.docker-container }} --detach --network=${{ env.docker-network }} -it --rm -p 8080:8080 microbroker:localbuild --mongoConnection=mongodb://mongodb:27017
 
       - name: Run Tests
         run: |
@@ -150,7 +167,7 @@ jobs:
       - name: Stop microbroker
         if: always()
         run: |
-          docker stop microbroker-acceptancetests
+          docker stop ${{ env.docker-container }}
 
       - name: Report Acceptance test results
         uses: dorny/test-reporter@v2
@@ -161,9 +178,10 @@ jobs:
           reporter: dotnet-trx
           token: ${{ secrets.GITHUB_TOKEN }}
 
-  performance-tests:
-    name: Run Performance tests
+  server-performance-tests:
+    name: Run Server Performance tests
     runs-on: ubuntu-latest
+    needs: [ variables ]
 
     steps:
       - uses: actions/checkout@v6
@@ -171,9 +189,10 @@ jobs:
       - name: Build docker image
         run: docker build -f Dockerfile -t microbroker:localbuild --build-arg BuildVersion=0.0.0-localbuild .
 
-      - name: Set docker network name
+      - name: Set docker vars
         run: |
-          echo "docker-network=microbroker-acceptance-tests-${{ github.run_number }}" >> $GITHUB_ENV
+          echo "docker-network=microbroker-performance-tests-${{ github.run_number }}" >> $GITHUB_ENV
+          echo "docker-container=microbroker-performance-tests-${{ github.run_number }}" >> $GITHUB_ENV
           
       - name: Create docker network
         run: |
@@ -188,7 +207,7 @@ jobs:
 
       - name: Start microbroker
         run: |
-          docker run --name microbroker-acceptancetests --detach --network=${{ env.docker-network }} -it --rm -p 8080:8080 microbroker:localbuild --mongoConnection=mongodb://mongodb:27017
+          docker run --name ${{ env.docker-container }} --detach --network=${{ env.docker-network }} -it --rm -p 8080:8080 microbroker:localbuild --mongoConnection=mongodb://mongodb:27017
 
       - name: Run Tests
         run: |
@@ -197,36 +216,28 @@ jobs:
       - name: Stop microbroker
         if: always()
         run: |
-          docker stop microbroker-acceptancetests
+          docker stop ${{ env.docker-container }}
 
-      - name: Report Acceptance test results
+      - name: Report Performance test results
         if: always()
         run: |
           cat reports/**/nbomber_report_*.md >> $GITHUB_STEP_SUMMARY
-          
+
   build-publish-docker-image:
     name: Build & Publish docker image
     runs-on: ubuntu-latest
-    needs:   [ build, unit-tests, sca, acceptance-tests, performance-tests ]
+    needs: [ variables, build, unit-tests, sca, acceptance-tests, server-performance-tests ]
 
     steps:
       - uses: actions/checkout@v6
       
-      - name: Set BuildVersion
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-        run: |
-          echo "build-version-number=$(git describe --tags --dirty)" >> $GITHUB_ENV
-
-      - name: Report version
-        run: echo "Building package ${{ env.build-version-number }}" >> $GITHUB_STEP_SUMMARY
-
       - name: Set Docker image name
         run: |
-          echo "docker-image-name=${{ env.docker-image-name }}:v${{ env.build-version-number }}" >> $GITHUB_ENV
-                  
-      - name: Build docker image
-        run: docker build -f Dockerfile -t ${{ env.docker-image-name }} --build-arg BuildVersion=${{ env.build-version-number }} .
+          echo "docker-image-name=${{ env.docker-image-name }}:v${{ needs.variables.outputs.build-version-number }}" >> $GITHUB_ENV 
+          echo "Building image ${{ env.docker-image-name }}" >> $GITHUB_STEP_SUMMARY
 
+      - name: Build docker image
+        run: docker build -f Dockerfile -t ${{ env.docker-image-name }} --build-arg BuildVersion=${{ needs.variables.outputs.build-version-number }} .
       - name: Login to GitHub Container Registry
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         uses: docker/login-action@v3
@@ -238,3 +249,26 @@ jobs:
       - name: Push docker image
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         run: docker push ${{ env.docker-image-name }}
+
+  build-publish-client-library:
+    name: Build & Publish client library
+    runs-on: ubuntu-latest
+    needs: [ variables, build, unit-tests, sca, acceptance-tests, server-performance-tests ]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup .NET Core SDK
+        uses: actions/setup-dotnet@v5
+
+      - name: dotnet tool restore
+        run: |
+          dotnet tool restore
+          dotnet restore
+          
+      - name: Create Nuget package
+        run: dotnet pack ./src/microbroker.client/Microbroker.Client.fsproj -c Release -o ./package/ /p:PackageVersion=${{ needs.variables.outputs.build-version-number }} /p:Version=${{ needs.variables.outputs.build-version-number }} /p:AssemblyInformationalVersion=${{ needs.variables.outputs.build-version-number }}
+      
+      - name: Push nuget package
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        run: dotnet nuget push "package/*.nupkg"  --api-key ${{ secrets.NUGET_PAT }} --source "nuget.org"
