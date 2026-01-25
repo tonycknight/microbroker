@@ -4,8 +4,8 @@ $queues = $json | ConvertFrom-Json
 
 Write-Host "Found $($queues.Count) queues." -ForegroundColor Cyan
 
-foreach ($queue in $queues) {
-
+foreach ($queue in $queues | Where-Object { $_.name -like "test-queue-*" }) {
+    
     Write-Host "Clearing queue $($queue.name)..."
 
     Invoke-RestMethod -Uri "http://localhost:8080/queues/$($queue.name)/" -Method DELETE 
