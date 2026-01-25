@@ -2,6 +2,8 @@
 
 [![Build & Release](https://github.com/tonycknight/microbroker/actions/workflows/build.yml/badge.svg)](https://github.com/tonycknight/microbroker/actions/workflows/build.yml)
 
+![NuGet Version](https://img.shields.io/nuget/:variant/Microbroker.Client)
+
 A _very simple_ message brokerage service.
 
 Messages are handled in FIFO order, with at-most-once delivery semantics. Transactional messaging is not supported at this time - it's a _very simple_ broker after all!
