@@ -5,11 +5,9 @@ open System.Linq
 open System.Threading.Tasks
 open FsCheck.FSharp
 open FsCheck.Xunit
-open FsUnit
 open Microsoft.Extensions.Logging
 open Microbroker.Client
 
-// TODO: [<Xunit.Collection(TestUtils.testCollection)>]
 module ClientTests =
 
     let proxy baseUrl =
@@ -51,7 +49,7 @@ module ClientTests =
             task {
                 let! count = queueName |> (proxy TestUtils.host).GetQueueCount
 
-                return 
+                return
                     count.IsSome
                     && count.Value.name = queueName
                     && count.Value.count = 0
@@ -104,10 +102,11 @@ module ClientTests =
 
                 let! counts = proxy.GetQueueCounts [| queueName |]
 
-                return counts.Length = 1
-                        && counts.[0].name = queueName
-                        && counts.[0].count = 0
-                        && counts.[0].futureCount = 0
+                return
+                    counts.Length = 1
+                    && counts.[0].name = queueName
+                    && counts.[0].count = 0
+                    && counts.[0].futureCount = 0
             }
 
         Prop.forAll (Arbitraries.validQueueNames) property
@@ -117,7 +116,7 @@ module ClientTests =
         let property (msg, queueName) =
             task {
                 let proxy = proxy TestUtils.host
-                                
+
                 let! msg = proxy.GetNext queueName
 
                 return msg = None
@@ -130,7 +129,7 @@ module ClientTests =
         let property (msg, queueName) =
             task {
                 let proxy = proxy TestUtils.host
-                                
+
                 let! msg = proxy.GetNext queueName
 
                 return msg = None

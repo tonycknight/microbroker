@@ -26,9 +26,9 @@ module MicrobrokerProxyTests =
         let name = Guid.NewGuid().ToString()
 
         let count =
-            {   MicrobrokerCount.name = name
-                count = 1
-                futureCount = 2 }
+            { MicrobrokerCount.name = name
+              count = 1
+              futureCount = 2 }
 
         let resp = count |> toJson |> ok
         let http = httpClient resp
@@ -41,11 +41,11 @@ module MicrobrokerProxyTests =
 
     [<Fact>]
     let ``GetQueueCounts on no matching name returns empty`` () =
-        
+
         let count =
-            {   MicrobrokerCount.name = Guid.NewGuid().ToString()
-                count = 1
-                futureCount = 2 }
+            { MicrobrokerCount.name = Guid.NewGuid().ToString()
+              count = 1
+              futureCount = 2 }
 
         let resp = count |> toJson |> notfound
         let http = httpClient resp
@@ -53,7 +53,7 @@ module MicrobrokerProxyTests =
 
         let r = proxy.GetQueueCounts([| Guid.NewGuid().ToString() |]).Result
 
-        r.Length |> should equal 0        
+        r.Length |> should equal 0
 
     [<Fact>]
     let ``GetQueueCount on matching name returns value`` () =
@@ -61,9 +61,9 @@ module MicrobrokerProxyTests =
         let name = Guid.NewGuid().ToString()
 
         let count =
-            {   MicrobrokerCount.name = name
-                count = 1
-                futureCount = 2 }
+            { MicrobrokerCount.name = name
+              count = 1
+              futureCount = 2 }
 
         let resp = count |> toJson |> ok
         let http = httpClient resp
@@ -82,9 +82,9 @@ module MicrobrokerProxyTests =
         let name = "Aaa".ToLower()
 
         let count =
-            {   MicrobrokerCount.name = name
-                count = 1
-                futureCount = 2 }
+            { MicrobrokerCount.name = name
+              count = 1
+              futureCount = 2 }
 
         let resp = count |> toJson |> ok
         let http = httpClient resp
@@ -102,9 +102,9 @@ module MicrobrokerProxyTests =
         let name = "aaa"
 
         let count =
-            {   MicrobrokerCount.name = "BBB"
-                count = 1
-                futureCount = 2 }
+            { MicrobrokerCount.name = "BBB"
+              count = 1
+              futureCount = 2 }
 
         let resp = count |> toJson |> notfound
         let http = httpClient resp
@@ -120,9 +120,9 @@ module MicrobrokerProxyTests =
         let name = "aaa"
 
         let count =
-            {   MicrobrokerCount.name = "BBB"
-                count = 1
-                futureCount = 2 }
+            { MicrobrokerCount.name = "BBB"
+              count = 1
+              futureCount = 2 }
 
         let resp = count |> toJson |> badRequest
         let http = httpClient resp

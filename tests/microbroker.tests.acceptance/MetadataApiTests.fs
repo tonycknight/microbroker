@@ -3,7 +3,6 @@ namespace microbroker.tests.acceptance
 open Newtonsoft.Json
 open FsCheck.Xunit
 
-// TODO: [<Xunit.Collection(TestUtils.testCollection)>]
 module MetadataApiTests =
 
     [<Property(MaxTest = 1)>]

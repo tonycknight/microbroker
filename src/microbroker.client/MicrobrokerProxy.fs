@@ -86,7 +86,7 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
             return counts |> Array.filter isMatch
         }
 
-    let queueCount queue = 
+    let queueCount queue =
         task {
             let url = $"{Strings.trimSlash config.brokerBaseUrl}/queues/{queue}/"
             let! resp = httpClient.GetAsync url
@@ -99,6 +99,7 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
                     HttpRequestResponse.loggable resp |> log.LogError
                     None
         }
+
     interface IMicrobrokerProxy with
         member this.Post queue message = postManyToBroker queue [ message ]
 
@@ -107,15 +108,13 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
         member this.GetNext queue =
             Throttling.exponentialWait config.throttleMaxTime (fun () -> getNextFromBroker queue)
 
-        member this.GetQueueCounts(queues: string[]) = 
-            task {                
+        member this.GetQueueCounts(queues: string[]) =
+            task {
                 let tasks = queues |> Array.map queueCount
 
                 let! counts = Task.WhenAll tasks
 
-                return counts 
-                        |> Array.filter (fun c -> c.IsSome)
-                        |> Array.map (fun c -> c.Value)
+                return counts |> Array.filter (fun c -> c.IsSome) |> Array.map (fun c -> c.Value)
             }
 
         member this.GetQueueCount queue = queueCount queue

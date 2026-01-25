@@ -6,7 +6,6 @@ open FsCheck.Xunit
 open microbroker
 
 // TTA testing is time consuming as the time cannot be mocked out of the system. These scenarios are kept separate for XUnit parallelism.
-// TODO: [<Xunit.Collection(TestUtils.testCollection)>]
 module PostTtaMessageTests =
 
     [<Property(MaxTest = 2)>]
