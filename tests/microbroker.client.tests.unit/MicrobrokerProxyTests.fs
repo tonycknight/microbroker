@@ -12,7 +12,7 @@ module MicrobrokerProxyTests =
     [<Fact>]
     let ``GetQueueCounts on empty array returns empty`` () =
 
-        let resp = ok "[]"
+        let resp = notfound ""
         let http = httpClient resp
         let proxy = defaultProxy http
 
@@ -25,37 +25,35 @@ module MicrobrokerProxyTests =
 
         let name = Guid.NewGuid().ToString()
 
-        let counts =
-            [| { MicrobrokerCount.name = name
-                 count = 1
-                 futureCount = 2 } |]
+        let count =
+            {   MicrobrokerCount.name = name
+                count = 1
+                futureCount = 2 }
 
-        let resp = counts |> toJson |> ok
+        let resp = count |> toJson |> ok
         let http = httpClient resp
         let proxy = defaultProxy http
 
         let r = proxy.GetQueueCounts([| name |]).Result
 
         r.Length |> should equal 1
-        r.[0] |> should equal counts.[0]
+        r.[0] |> should equal count
 
     [<Fact>]
     let ``GetQueueCounts on no matching name returns empty`` () =
+        
+        let count =
+            {   MicrobrokerCount.name = Guid.NewGuid().ToString()
+                count = 1
+                futureCount = 2 }
 
-        let name = Guid.NewGuid().ToString()
-
-        let counts =
-            [| { MicrobrokerCount.name = name
-                 count = 1
-                 futureCount = 2 } |]
-
-        let resp = counts |> toJson |> ok
+        let resp = count |> toJson |> notfound
         let http = httpClient resp
         let proxy = defaultProxy http
 
         let r = proxy.GetQueueCounts([| Guid.NewGuid().ToString() |]).Result
 
-        r.Length |> should equal 0
+        r.Length |> should equal 0        
 
     [<Fact>]
     let ``GetQueueCount on matching name returns value`` () =

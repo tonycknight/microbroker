@@ -104,7 +104,10 @@ module ClientTests =
 
                 let! counts = proxy.GetQueueCounts [| queueName |]
 
-                return counts.Length = 0
+                return counts.Length = 1
+                        && counts.[0].name = queueName
+                        && counts.[0].count = 0
+                        && counts.[0].futureCount = 0
             }
 
         Prop.forAll (Arbitraries.validQueueNames) property
@@ -140,9 +143,6 @@ module ClientTests =
         let property (msg, queueName) =
             task {
                 let proxy = proxy TestUtils.host
-
-                let! count = proxy.GetQueueCount queueName
-                count |> should equal None
 
                 do! proxy.Post queueName msg
 
