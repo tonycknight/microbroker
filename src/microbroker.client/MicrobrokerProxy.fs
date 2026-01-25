@@ -86,6 +86,19 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
             return counts |> Array.filter isMatch
         }
 
+    let queueCount queue = 
+        task {
+            let url = $"{Strings.trimSlash config.brokerBaseUrl}/queues/{queue}/"
+            let! resp = httpClient.GetAsync url
+
+            return
+                match resp with
+                | HttpOkRequestResponse(_, body, _, _) ->
+                    Newtonsoft.Json.JsonConvert.DeserializeObject<MicrobrokerCount>(body) |> Some
+                | resp ->
+                    HttpRequestResponse.loggable resp |> log.LogError
+                    None
+        }
     interface IMicrobrokerProxy with
         member this.Post queue message = postManyToBroker queue [ message ]
 
@@ -94,14 +107,6 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
         member this.GetNext queue =
             Throttling.exponentialWait config.throttleMaxTime (fun () -> getNextFromBroker queue)
 
-        member this.GetQueueCounts(queues: string[]) = filteredQueueCounts queues
+        member this.GetQueueCounts(queues: string[]) = filteredQueueCounts queues // TODO: optimise...
 
-        member this.GetQueueCount queue =
-            task {
-                let! counts = filteredQueueCounts [| queue |]
-
-                return
-                    match counts with
-                    | [| c |] -> Some c
-                    | _ -> None
-            }
+        member this.GetQueueCount queue = queueCount queue

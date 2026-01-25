@@ -34,13 +34,28 @@ module ClientTests =
 
         getAll proxy queue []
 
-    [<Property(MaxTest = TestUtils.maxClientTests)>]
-    let ``GetQueueCount on unknown queue name returns None`` () =
+    [<Property>]
+    let ``GetQueueCount on invalid queue name returns None`` () =
         let property queueName =
             task {
-                let! count = queueName.ToString() |> (proxy TestUtils.host).GetQueueCount
+                let! count = queueName |> (proxy TestUtils.host).GetQueueCount
 
                 return count = None
+            }
+
+        Prop.forAll Arbitraries.invalidQueueNames property
+
+    [<Property(MaxTest = TestUtils.maxClientTests)>]
+    let ``GetQueueCount on unknown queue name returns queue`` () =
+        let property queueName =
+            task {
+                let! count = queueName |> (proxy TestUtils.host).GetQueueCount
+
+                return 
+                    count.IsSome
+                    && count.Value.name = queueName
+                    && count.Value.count = 0
+                    && count.Value.futureCount = 0
             }
 
         Prop.forAll Arbitraries.validQueueNames property
@@ -93,6 +108,32 @@ module ClientTests =
             }
 
         Prop.forAll (Arbitraries.validQueueNames) property
+
+    [<Property(MaxTest = TestUtils.maxClientTests)>]
+    let ``GetNext on invalid queue returns None`` () =
+        let property (msg, queueName) =
+            task {
+                let proxy = proxy TestUtils.host
+                                
+                let! msg = proxy.GetNext queueName
+
+                return msg = None
+            }
+
+        Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate(), Arbitraries.invalidQueueNames)) property
+
+    [<Property(MaxTest = TestUtils.maxClientTests)>]
+    let ``GetNext on unknown queue returns None`` () =
+        let property (msg, queueName) =
+            task {
+                let proxy = proxy TestUtils.host
+                                
+                let! msg = proxy.GetNext queueName
+
+                return msg = None
+            }
+
+        Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate(), Arbitraries.validQueueNames)) property
 
     [<Property(MaxTest = TestUtils.maxClientTests)>]
     let ``Post to new queue returns count and message`` () =
