@@ -130,15 +130,15 @@ module ClientTests =
                 let expiry = TimeSpan.FromSeconds 10
 
                 let! _ = getAllMessages proxy queue // drain the queue
-                
+
                 let msg = msg |> MicrobrokerMessages.expiry (fun () -> expiry)
 
                 do! proxy.Post queue msg
 
-                do! Task.Delay (TimeSpan.FromSeconds 2 + expiry)
+                do! Task.Delay(TimeSpan.FromSeconds 2 + expiry)
 
                 let! msg = proxy.GetNext queue
-                
+
                 return msg = None
             }
 
@@ -155,8 +155,8 @@ module ClientTests =
 
                 let! msgs2 = getAllMessages proxy queue
                 let msgs2Content = msgs2 |> Seq.rev |> Seq.map _.content |> Array.ofSeq
-                let msgsContent =  msgs |> Seq.map _.content |> Array.ofSeq
-                
+                let msgsContent = msgs |> Seq.map _.content |> Array.ofSeq
+
                 return msgsContent.SequenceEqual(msgs2Content)
             }
 

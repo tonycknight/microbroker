@@ -44,8 +44,8 @@ module Arbitraries =
         |> Arb.filter (WebApiValidation.isValidQueueName >> not)
 
     let validQueueNames =
-        
-        ArbMap.defaults 
+
+        ArbMap.defaults
         |> ArbMap.arbitrary<Guid>
         |> Arb.toGen
         |> Gen.map (fun g -> $"queue-{g}".ToLowerInvariant())
@@ -59,12 +59,13 @@ module Arbitraries =
     type QueueMessages =
 
         static member Generate() =
-            
-            let contents = 
-                ArbMap.defaults |> ArbMap.arbitrary<Guid>           
+
+            let contents =
+                ArbMap.defaults
+                |> ArbMap.arbitrary<Guid>
                 |> Arb.toGen
                 |> Gen.map (fun g -> $"message-content-{g}")
-                
+
             let messageTypes =
                 AlphaNumericString.Generate().Generator |> Gen.map (fun s -> $"MessageType{s}")
 
