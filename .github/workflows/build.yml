@@ -56,6 +56,11 @@ jobs:
           vulnerable: true
           deprecated: true
           transitives: true
+          fail-on-critical: true
+          fail-on-high: true
+          fail-on-moderate: true
+          fail-on-legacy: true
+          fail-on-upgrades: false
   
   build:
     name: Build
