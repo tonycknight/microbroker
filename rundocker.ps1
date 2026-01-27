@@ -9,4 +9,4 @@ param (
     [string]$HostUrls = "http://+:8080"
 )
 
-docker run -it --rm -p 8080:8080 microbroker --mongoConnection=$ConnectionString --mongoDbName=$DbName --hostUrls=$HostUrls
+docker run -it --rm -p 8080:8080 microbroker --mongoConnection=$ConnectionString --mongoDbName=$DbName --hostUrls=$HostUrls --ttaScanFrequency=00:00:15

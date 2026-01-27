@@ -168,7 +168,7 @@ jobs:
 
       - name: Start microbroker
         run: |
-          docker run --name ${{ env.docker-container }} --detach --network=${{ env.docker-network }} -it --rm -p 8080:8080 microbroker:localbuild --mongoConnection=mongodb://mongodb:27017
+          docker run --name ${{ env.docker-container }} --detach --network=${{ env.docker-network }} -it --rm -p 8080:8080 microbroker:localbuild --mongoConnection=mongodb://mongodb:27017  --ttaScanFrequency=00:00:15
 
       - name: Run Tests
         run: |
@@ -217,7 +217,7 @@ jobs:
 
       - name: Start microbroker
         run: |
-          docker run --name ${{ env.docker-container }} --detach --network=${{ env.docker-network }} -it --rm -p 8080:8080 microbroker:localbuild --mongoConnection=mongodb://mongodb:27017
+          docker run --name ${{ env.docker-container }} --detach --network=${{ env.docker-network }} -it --rm -p 8080:8080 microbroker:localbuild --mongoConnection=mongodb://mongodb:27017 --ttaScanFrequency=00:00:15
 
       - name: Run Tests
         run: |
