@@ -35,7 +35,7 @@ module Program =
                   messageType = "text/plain"
                   active = now
                   created = now
-                  expiry = now.AddMinutes(10.0) }
+                  expiry = now.AddMinutes(2.0) }
 
             let request = Http.createRequest "POST" messageUrl |> Http.withJsonBody msg
 
@@ -53,7 +53,7 @@ module Program =
                   messageType = "text/plain"
                   active = now.AddSeconds(15.0)
                   created = now
-                  expiry = now.AddMinutes(10.0) }
+                  expiry = now.AddMinutes(2.0) }
 
             let request = Http.createRequest "POST" messageUrl |> Http.withJsonBody msg
 
