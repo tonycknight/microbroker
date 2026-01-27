@@ -16,6 +16,13 @@ module Program =
     let setSimulation rate duration =
         Scenario.withLoadSimulations [ Inject(rate = rate, interval = seconds 1, during = seconds duration) ]
 
+    let genText =
+        let rng = new Random()
+        fun () -> 
+            let size = rng.Next(100, 4000)
+            let chars = Array.init size (fun _ -> char (rng.Next(32, 126)))
+            String(chars)
+
     let getQueues httpClient queuesUrl context =
         task {
 
@@ -31,7 +38,7 @@ module Program =
             let now = DateTimeOffset.UtcNow
 
             let msg =
-                { QueueMessage.content = $"Message {Guid.NewGuid()}"
+                { QueueMessage.content = genText ()
                   messageType = "text/plain"
                   active = now
                   created = now
@@ -49,7 +56,7 @@ module Program =
             let now = DateTimeOffset.UtcNow
 
             let msg =
-                { QueueMessage.content = $"Message {Guid.NewGuid()}"
+                { QueueMessage.content = genText ()
                   messageType = "text/plain"
                   active = now.AddSeconds(15.0)
                   created = now
