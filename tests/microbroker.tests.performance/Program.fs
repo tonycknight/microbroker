@@ -44,6 +44,24 @@ module Program =
             return response
         }
 
+    let pushFutureMessage httpClient messageUrl context =
+        task {
+            let now = DateTimeOffset.UtcNow
+
+            let msg =
+                { QueueMessage.content = $"Message {Guid.NewGuid()}"
+                  messageType = "text/plain"
+                  active = now.AddSeconds(15.0)
+                  created = now
+                  expiry = now.AddMinutes(10.0) }
+
+            let request = Http.createRequest "POST" messageUrl |> Http.withJsonBody msg
+
+            let! response = request |> Http.send httpClient
+
+            return response
+        }
+
     let pullMessage httpClient messageUrl context =
         task {
             let request = Http.createRequest "GET" messageUrl
@@ -70,12 +88,18 @@ module Program =
                 [ Scenario.create ("push message", pushMessage httpClient messageUrl)
                   |> setWarmup warmup
                   |> setSimulation options.rate options.duration
+
+                  Scenario.create ("push future message", pushFutureMessage httpClient messageUrl)
+                      |> setWarmup warmup
+                      |> setSimulation options.rate options.duration
+
                   Scenario.create ("pull message", pullMessage httpClient messageUrl)
-                  |> setWarmup warmup
-                  |> setSimulation options.rate options.duration
+                      |> setWarmup warmup
+                      |> setSimulation options.rate options.duration
+
                   Scenario.create ("get queues", getQueues httpClient queuesUrl)
-                  |> setWarmup warmup
-                  |> setSimulation options.rate options.duration ]
+                      |> setWarmup warmup
+                      |> setSimulation options.rate options.duration ]
             |> NBomberRunner.withTestName "basic push/pull performance tests"
             |> NBomberRunner.withTestSuite "microbroker performance tests"
             |> NBomberRunner.run
