@@ -6,12 +6,13 @@ open System.Threading.Tasks
 open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
 
-type TtaQueueMonitor(logFactory: ILoggerFactory, queueProvider: IQueueProvider) =
+type TtaQueueMonitor(logFactory: ILoggerFactory, queueProvider: IQueueProvider, config: AppConfiguration) =
     
     inherit BackgroundService() 
 
     let log = logFactory.CreateLogger<TtaQueueMonitor>()
-    
+    let scanFrequency = config.ttaScanFrequency
+        
     let moveTtaMessages (cancellationToken: CancellationToken) (name: string) =
         task {            
             try
@@ -33,17 +34,17 @@ type TtaQueueMonitor(logFactory: ILoggerFactory, queueProvider: IQueueProvider) 
 
     override this.ExecuteAsync(cancellationToken: CancellationToken) : Task =
         task {
-            log.LogTrace "TTA Queue Monitor starting..."
+            log.LogTrace $"TTA Queue Monitor starting with frequency {scanFrequency}..."
             try
-                let frequency = TimeSpan.FromSeconds 15. // TODO: TimeSpan.FromMinutes(1.) config?
-                use timer = new PeriodicTimer(frequency)
+                use timer = new PeriodicTimer(scanFrequency)
 
                 let mutable loop = true                
                 try 
                     while loop do
-                        do! moveMessages cancellationToken
-                        let! x = timer.WaitForNextTickAsync cancellationToken
-                        loop <- x
+                        let! cont = timer.WaitForNextTickAsync cancellationToken
+                        if cont then
+                            do! moveMessages cancellationToken                        
+                        loop <- cont
                 
                 with
                     | :? OperationCanceledException -> log.LogInformation("TTA Queue Monitor stopping...")
