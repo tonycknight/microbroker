@@ -8,12 +8,14 @@ open Microsoft.Extensions.DependencyInjection
 type AppConfiguration =
     { hostUrls: string
       mongoDbName: string
-      mongoConnection: string }
+      mongoConnection: string
+      ttaScanFrequency: TimeSpan }
 
     static member defaultConfig =
         { AppConfiguration.hostUrls = "http://+:8080"
           mongoDbName = ""
-          mongoConnection = "" }
+          mongoConnection = ""
+          ttaScanFrequency = TimeSpan.FromSeconds 60. }
 
 module Configuration =
     let create (sp: System.IServiceProvider) =

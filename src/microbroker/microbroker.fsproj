@@ -13,6 +13,7 @@
     <Compile Include="Mongo.fs" />
     <Compile Include="Configuration.fs" />
     <Compile Include="Queues.fs" />
+    <Compile Include="TtqQueueMonitor.fs" />
     <Compile Include="ApiStartup.fs" />
     <Compile Include="WebApiValidation.fs" />
     <Compile Include="WebApi.fs" />

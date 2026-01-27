@@ -32,3 +32,13 @@ content-type: application/json
     "messageType": "very ordinary"
 }
 
+### Post message to queue
+POST http://localhost:8080/queues/aaa/message/
+content-type: application/json
+
+{ 
+    "content": "just a test",
+    "messageType": "very ordinary",
+    "active": "2027-01-01T00:00:00Z"
+}
+

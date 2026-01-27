@@ -16,6 +16,14 @@ module Program =
     let setSimulation rate duration =
         Scenario.withLoadSimulations [ Inject(rate = rate, interval = seconds 1, during = seconds duration) ]
 
+    let genText =
+        let rng = new Random()
+
+        fun () ->
+            let size = rng.Next(100, 4000)
+            let chars = Array.init size (fun _ -> char (rng.Next(32, 126)))
+            String(chars)
+
     let getQueues httpClient queuesUrl context =
         task {
 
@@ -31,11 +39,29 @@ module Program =
             let now = DateTimeOffset.UtcNow
 
             let msg =
-                { QueueMessage.content = $"Message {Guid.NewGuid()}"
+                { QueueMessage.content = genText ()
                   messageType = "text/plain"
                   active = now
                   created = now
-                  expiry = now.AddMinutes(10.0) }
+                  expiry = now.AddMinutes(2.0) }
+
+            let request = Http.createRequest "POST" messageUrl |> Http.withJsonBody msg
+
+            let! response = request |> Http.send httpClient
+
+            return response
+        }
+
+    let pushFutureMessage httpClient messageUrl context =
+        task {
+            let now = DateTimeOffset.UtcNow
+
+            let msg =
+                { QueueMessage.content = genText ()
+                  messageType = "text/plain"
+                  active = now.AddSeconds(15.0)
+                  created = now
+                  expiry = now.AddMinutes(2.0) }
 
             let request = Http.createRequest "POST" messageUrl |> Http.withJsonBody msg
 
@@ -70,9 +96,15 @@ module Program =
                 [ Scenario.create ("push message", pushMessage httpClient messageUrl)
                   |> setWarmup warmup
                   |> setSimulation options.rate options.duration
+
+                  Scenario.create ("push future message", pushFutureMessage httpClient messageUrl)
+                  |> setWarmup warmup
+                  |> setSimulation options.rate options.duration
+
                   Scenario.create ("pull message", pullMessage httpClient messageUrl)
                   |> setWarmup warmup
                   |> setSimulation options.rate options.duration
+
                   Scenario.create ("get queues", getQueues httpClient queuesUrl)
                   |> setWarmup warmup
                   |> setSimulation options.rate options.duration ]

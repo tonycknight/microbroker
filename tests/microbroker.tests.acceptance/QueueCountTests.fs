@@ -6,7 +6,7 @@ open microbroker
 
 module QueueCountTests =
 
-    [<Property(MaxTest = 1)>]
+    [<Property(MaxTest = 3)>]
     let ``GET Queues returns array`` () =
         task {
             let! result = TestUtils.getQueueInfos TestUtils.host
