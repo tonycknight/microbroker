@@ -34,6 +34,7 @@ module ApiStartup =
         services
             .AddSingleton<ILinkedQueueProvider, MongoLinkedQueueProvider>()
             .AddSingleton<IQueueProvider, MongoQueueProvider>()
+            .AddHostedService<TtaQueueMonitor>()
 
     let addApiConfig (services: IServiceCollection) =
         let sp = services.BuildServiceProvider()

@@ -11,8 +11,10 @@ type IQueue =
     abstract member GetInfoAsync: unit -> Task<QueueInfo>
     abstract member DeleteAsync: unit -> Task
     abstract member Name: string
+    abstract member MoveTtaMessagesAsync: unit -> Task<int64>
 
 type IQueueProvider =
+    abstract member GetQueueNamesAsync: unit -> Task<string[]>
     abstract member GetQueuesAsync: unit -> Task<QueueInfo[]>
     abstract member GetQueueAsync: queueName: string -> Task<IQueue>
     abstract member DeleteQueueAsync: queueName: string -> Task<bool>
@@ -115,27 +117,27 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
             return totalMoved
         }
 
-    let createMoveTimer () =
-        let interval = TimeSpan.FromMinutes(1.)
-        let moveTimer = new System.Timers.Timer(interval)
-
-        let moveCallback (x) =
-            try
-                $"Starting TTA move for queue [{name}]..." |> log.LogTrace
-                let deletions = moveTtaMessagesToActive().Result
-                $"[{deletions}] TTA messages moved for queue [{name}]." |> log.LogInformation
-            with ex ->
-                log.LogError(ex, ex.Message)
-
-        moveTimer.Elapsed.Add moveCallback
-        moveTimer
-
-    let moveTimer = createMoveTimer ()
-    do moveTimer.Enabled <- true
-    do moveTimer.Start()
-
     interface IQueue with
         member this.Name = name
+
+        member this.MoveTtaMessagesAsync() =
+            task {
+                try
+                    log.LogTrace $"Starting TTA move for queue [{name}]..."
+                    let! moves = moveTtaMessagesToActive ()
+                    let msg = $"[{moves}] TTA messages moved for queue [{name}]."
+
+                    if moves > 0L then
+                        log.LogInformation msg
+                    else
+                        log.LogTrace msg
+
+                    return moves
+
+                with ex ->
+                    log.LogError(ex, ex.Message)
+                    return 0L
+            }
 
         member this.GetInfoAsync() =
             task {
@@ -183,11 +185,8 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
 
         member this.DeleteAsync() =
             task {
-                moveTimer.Enabled <- false
-                moveTimer.Stop()
                 Mongo.deleteCollection activeQueueMongoCol
                 Mongo.deleteCollection ttaQueueMongoCol
-                moveTimer.Dispose()
             }
 
 type QueueMessageRelayActor(logFactory: ILoggerFactory, queueProvider: IQueueProvider) =
@@ -345,6 +344,9 @@ type MongoQueueProvider(config: AppConfiguration, logFactory: ILoggerFactory, li
 
 
     interface IQueueProvider with
+        member this.GetQueueNamesAsync() =
+            task { return queues.Keys |> Seq.sort |> Array.ofSeq }
+
         member this.GetQueuesAsync() =
             task {
                 let fetches =

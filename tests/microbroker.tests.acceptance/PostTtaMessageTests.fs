@@ -9,7 +9,7 @@ open microbroker
 module PostTtaMessageTests =
 
     [<Property(MaxTest = 2)>]
-    let ``POST Queue message with TTA shows time-delayed retrival`` () =
+    let ``POST Queue message with TTA shows time-delayed retrieval`` () =
         let property (msg, queueId) =
             task {
                 let uri = $"{TestUtils.host}/queues/{queueId}/message/"
