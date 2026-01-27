@@ -18,7 +18,8 @@ module Program =
 
     let genText =
         let rng = new Random()
-        fun () -> 
+
+        fun () ->
             let size = rng.Next(100, 4000)
             let chars = Array.init size (fun _ -> char (rng.Next(32, 126)))
             String(chars)
@@ -97,16 +98,16 @@ module Program =
                   |> setSimulation options.rate options.duration
 
                   Scenario.create ("push future message", pushFutureMessage httpClient messageUrl)
-                      |> setWarmup warmup
-                      |> setSimulation options.rate options.duration
+                  |> setWarmup warmup
+                  |> setSimulation options.rate options.duration
 
                   Scenario.create ("pull message", pullMessage httpClient messageUrl)
-                      |> setWarmup warmup
-                      |> setSimulation options.rate options.duration
+                  |> setWarmup warmup
+                  |> setSimulation options.rate options.duration
 
                   Scenario.create ("get queues", getQueues httpClient queuesUrl)
-                      |> setWarmup warmup
-                      |> setSimulation options.rate options.duration ]
+                  |> setWarmup warmup
+                  |> setSimulation options.rate options.duration ]
             |> NBomberRunner.withTestName "basic push/pull performance tests"
             |> NBomberRunner.withTestSuite "microbroker performance tests"
             |> NBomberRunner.run

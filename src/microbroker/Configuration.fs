@@ -8,7 +8,7 @@ open Microsoft.Extensions.DependencyInjection
 type AppConfiguration =
     { hostUrls: string
       mongoDbName: string
-      mongoConnection: string 
+      mongoConnection: string
       ttaScanFrequency: TimeSpan }
 
     static member defaultConfig =
