@@ -97,7 +97,7 @@ module MicrobrokerProxyTests =
         r.Value.futureCount |> should equal count.futureCount
 
     [<Fact>]
-    let ``GetQueueCount on unknown name returning 404 returns None`` () =
+    let ``GetQueueCount on unknown name returning 204 returns None`` () =
 
         let name = "aaa"
 

@@ -52,7 +52,7 @@ module TestUtils =
                 let uri = $"{host}/queues/{queueId}/message/"
                 use! getResponse = client.GetAsync(uri)
 
-                if getResponse.StatusCode = Net.HttpStatusCode.NotFound then
+                if getResponse.StatusCode <> Net.HttpStatusCode.OK then
                     return results
                 else
                     let! json = getResponse.Content.ReadAsStringAsync()

@@ -47,13 +47,13 @@ module GetMessageTests =
         Prop.forAll Arbitraries.invalidQueueNames property
 
     [<Property(MaxTest = TestUtils.maxServerTests)>]
-    let ``GET Queue message of unknown queue name returns 404`` () =
+    let ``GET Queue message of unknown queue name returns 204`` () =
         let property queueId =
             task {
                 let uri = $"{TestUtils.host}/queues/{queueId}/message/"
                 use! r = TestUtils.client.GetAsync(uri)
 
-                return r.StatusCode = Net.HttpStatusCode.NotFound
+                return r.StatusCode = Net.HttpStatusCode.NoContent
             }
 
         Prop.forAll Arbitraries.validQueueNames property

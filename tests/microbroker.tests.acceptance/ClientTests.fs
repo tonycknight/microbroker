@@ -113,7 +113,7 @@ module ClientTests =
 
     [<Property(MaxTest = TestUtils.maxClientTests)>]
     let ``GetNext on invalid queue returns None`` () =
-        let property (msg, queueName) =
+        let property (queueName) =
             task {
                 let proxy = proxy TestUtils.host
 
@@ -122,11 +122,11 @@ module ClientTests =
                 return msg = None
             }
 
-        Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate(), Arbitraries.invalidQueueNames)) property
+        Prop.forAll Arbitraries.invalidQueueNames property
 
     [<Property(MaxTest = TestUtils.maxClientTests)>]
     let ``GetNext on unknown queue returns None`` () =
-        let property (msg, queueName) =
+        let property (queueName) =
             task {
                 let proxy = proxy TestUtils.host
 
@@ -135,7 +135,7 @@ module ClientTests =
                 return msg = None
             }
 
-        Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate(), Arbitraries.validQueueNames)) property
+        Prop.forAll Arbitraries.validQueueNames property
 
     [<Property(MaxTest = TestUtils.maxClientTests)>]
     let ``Post to new queue returns count and message`` () =
