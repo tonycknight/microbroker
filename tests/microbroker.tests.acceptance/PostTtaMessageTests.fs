@@ -26,14 +26,14 @@ module PostTtaMessageTests =
                 postResponse.EnsureSuccessStatusCode() |> ignore
 
                 // Poll the server for signs of the messge
-                let endTime = DateTime.UtcNow.Add(TimeSpan.FromMinutes 2)
+                let endTime = DateTime.UtcNow.Add(TimeSpan.FromMinutes 2L)
                 let mutable messageRetrieved = false
 
                 while DateTime.UtcNow < endTime && (not messageRetrieved) do
                     let! queueInfo = TestUtils.getQueueInfo TestUtils.host (Strings.str queueId)
 
                     if queueInfo.count = 0 || queueInfo.futureCount <> 0 then
-                        do! System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds 1)
+                        do! System.Threading.Tasks.Task.Delay(1000)
                     else
                         let! retrievedMsgs = TestUtils.pullAllMessages TestUtils.host (Strings.str queueId)
 

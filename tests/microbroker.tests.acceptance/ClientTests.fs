@@ -164,7 +164,7 @@ module ClientTests =
         let property (msg, queue) =
             task {
                 let proxy = proxy TestUtils.host
-                let expiry = TimeSpan.FromSeconds 10
+                let expiry = TimeSpan.FromSeconds 10L
 
                 let! _ = getAllMessages proxy queue // drain the queue
 
@@ -172,7 +172,7 @@ module ClientTests =
 
                 do! proxy.Post queue msg
 
-                do! Task.Delay(TimeSpan.FromSeconds 2 + expiry)
+                do! Task.Delay(TimeSpan.FromSeconds 2L + expiry)
 
                 let! msg = proxy.GetNext queue
 
