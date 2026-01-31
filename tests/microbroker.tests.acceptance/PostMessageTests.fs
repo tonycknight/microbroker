@@ -57,24 +57,25 @@ module PostMessageTests =
 
     [<Property(MaxTest = TestUtils.maxServerTests)>]
     let ``POST expired queue message yields nothing`` () =
-        let property (message, queue) =
+        let property (messages, queue) =
             task {
-                let uri = $"{TestUtils.host}/queues/{queue}/message/"
+                let uri = $"{TestUtils.host}/queues/{queue}/messages/"
 
-                let message =
+                let expired message =
                     { message with
-                        QueueMessage.expiry = DateTimeOffset.UtcNow.AddMinutes -1 }
+                        QueueMessage.expiry = DateTimeOffset.UtcNow.AddHours -1 }
 
-                let content = message |> MessageGenerators.toJson |> TestUtils.jsonContent
+                let content = messages |> Array.map expired |> MessageGenerators.toJsonArray |> TestUtils.jsonContent
 
                 use! postResponse = TestUtils.client.PostAsync(uri, content)
                 postResponse.EnsureSuccessStatusCode() |> ignore
 
+                let uri = $"{TestUtils.host}/queues/{queue}/message/"
                 use! getResponse = TestUtils.client.GetAsync(uri)
                 return getResponse.StatusCode = Net.HttpStatusCode.NoContent
             }
 
-        Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate(), Arbitraries.validQueueNames)) property
+        Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate() |> Arb.array, Arbitraries.validQueueNames)) property
 
     [<Property(MaxTest = TestUtils.maxServerTests)>]
     let ``POST Queue messages yields all`` () =
