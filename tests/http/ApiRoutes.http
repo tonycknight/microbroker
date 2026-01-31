@@ -42,3 +42,13 @@ content-type: application/json
     "active": "2027-01-01T00:00:00Z"
 }
 
+### Post expired message to queue
+POST http://localhost:8080/queues/aaa/message/
+content-type: application/json
+
+{ 
+    "content": "just a test",
+    "messageType": "very ordinary",
+    "expiry": "2026-01-01T00:00:00Z"
+}
+

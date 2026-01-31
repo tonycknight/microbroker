@@ -78,7 +78,7 @@ module WebApi =
                 | Choice2Of2 queueId ->
                     let! q = queueProvider ctx |> queue queueId
 
-                    match! q.GetNextAsync() with
+                    match! q.GetNextAsync TimeSpan.MaxValue with
                     | None ->
                         ctx.SetStatusCode StatusCodes.Status204NoContent
                         return! next ctx

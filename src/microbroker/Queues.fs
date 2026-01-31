@@ -6,7 +6,7 @@ open microbroker.Strings
 open Microsoft.Extensions.Logging
 
 type IQueue =
-    abstract member GetNextAsync: unit -> Task<QueueMessage option>
+    abstract member GetNextAsync: timeout: TimeSpan -> Task<QueueMessage option>
     abstract member PushAsync: message: QueueMessage -> Task
     abstract member GetInfoAsync: unit -> Task<QueueInfo>
     abstract member DeleteAsync: unit -> Task
@@ -73,6 +73,11 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
     let activeQueueCollectionName = $"{MongoQueues.queueNamePrefix}{name}"
     let ttaQueueCollectionName = $"{MongoQueues.ttaQueueNamePrefix}{name}"
     let log = logFactory.CreateLogger<MongoQueue>()
+
+    let pullTimeout (timeout: TimeSpan) =
+        let max = TimeSpan.FromSeconds 5L
+
+        if timeout > max then max else timeout
 
     let setExpiry (msg: QueueMessage) =
         if msg.expiry = DateTimeOffset.MinValue then
@@ -150,15 +155,18 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
                       futureCount = ttaCount }
             }
 
-        member this.GetNextAsync() =
+        member this.GetNextAsync(timeout: TimeSpan) =
+            let exp = timeout |> pullTimeout |> DateTime.UtcNow.Add
+
             let rec getNext () =
                 task {
                     let! data = Mongo.pullSingletonFromQueue<QueueMessageData> activeQueueMongoCol
 
                     return!
                         match data with
-                        | Some d when (isExpired d |> not) -> task { return QueueMessageData.toQueueMessage d |> Some }
                         | None -> task { return None }
+                        | Some d when (isExpired d |> not) -> task { return QueueMessageData.toQueueMessage d |> Some }
+                        | Some d when (DateTime.UtcNow >= exp) -> task { return None }
                         | Some d -> getNext ()
                 }
 
