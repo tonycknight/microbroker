@@ -80,7 +80,7 @@ module WebApi =
 
                     match! q.GetNextAsync() with
                     | None ->
-                        ctx.SetStatusCode StatusCodes.Status404NotFound
+                        ctx.SetStatusCode StatusCodes.Status204NoContent
                         return! next ctx
                     | Some msg -> return! Successful.OK msg next ctx
             }

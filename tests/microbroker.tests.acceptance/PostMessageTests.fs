@@ -71,7 +71,7 @@ module PostMessageTests =
                 postResponse.EnsureSuccessStatusCode() |> ignore
 
                 use! getResponse = TestUtils.client.GetAsync(uri)
-                return getResponse.StatusCode = Net.HttpStatusCode.NotFound
+                return getResponse.StatusCode = Net.HttpStatusCode.NoContent
             }
 
         Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate(), Arbitraries.validQueueNames)) property

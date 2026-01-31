@@ -31,9 +31,9 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
 
             let result =
                 match rep with
-                | HttpOkRequestResponse(_, body, _, _) -> MicrobrokerMessages.fromString body
-
-                | HttpErrorRequestResponse(status, _, _) when status = HttpStatusCode.NotFound -> None
+                | HttpOkRequestResponse(status, body, _, _) when status = HttpStatusCode.OK ->
+                    MicrobrokerMessages.fromString body
+                | HttpOkRequestResponse(status, _, _, _) when status = HttpStatusCode.NoContent -> None
                 | _ ->
                     HttpRequestResponse.loggable rep |> log.LogError
                     None
