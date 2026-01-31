@@ -12,4 +12,12 @@ foreach ($queue in $queues | Where-Object { $_.name -like "test-queue-*" }) {
 
 }
 
+foreach ($queue in $queues | Where-Object { $_.name -like "perftests*" }) {
+    
+    Write-Host "Clearing queue $($queue.name)..."
+
+    Invoke-RestMethod -Uri "http://localhost:8080/queues/$($queue.name)/" -Method DELETE 
+
+}
+
 Write-Host "Done." -ForegroundColor Green
