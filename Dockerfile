@@ -1,15 +1,15 @@
 ARG BuildVersion
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
 EXPOSE 8080
 
 # Creates a non-root user with an explicit UID and adds permission to access the /app folder
 # For more info, please refer to https://aka.ms/vscode-docker-dotnet-configure-containers
-RUN adduser -u 5678 --disabled-password --gecos "" microbrokeruser && chown -R microbrokeruser /app
+RUN useradd -u 5678 --no-create-home --no-user-group -s /sbin/nologin microbrokeruser && chown -R microbrokeruser /app
 USER microbrokeruser
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0.100 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BuildVersion
 WORKDIR /src
 

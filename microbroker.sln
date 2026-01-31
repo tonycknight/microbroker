@@ -11,6 +11,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{D9BD7922
 	ProjectSection(SolutionItems) = preProject
 		.github\workflows\build.yml = .github\workflows\build.yml
 		.github\dependabot.yml = .github\dependabot.yml
+		Dockerfile = Dockerfile
 		.github\workflows\pr-checks.yml = .github\workflows\pr-checks.yml
 		.github\workflows\sca.yml = .github\workflows\sca.yml
 	EndProjectSection
