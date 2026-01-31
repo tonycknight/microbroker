@@ -65,7 +65,11 @@ module PostMessageTests =
                     { message with
                         QueueMessage.expiry = DateTimeOffset.UtcNow.AddHours -1 }
 
-                let content = messages |> Array.map expired |> MessageGenerators.toJsonArray |> TestUtils.jsonContent
+                let content =
+                    messages
+                    |> Array.map expired
+                    |> MessageGenerators.toJsonArray
+                    |> TestUtils.jsonContent
 
                 use! postResponse = TestUtils.client.PostAsync(uri, content)
                 postResponse.EnsureSuccessStatusCode() |> ignore
