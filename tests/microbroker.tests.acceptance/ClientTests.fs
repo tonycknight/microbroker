@@ -117,9 +117,12 @@ module ClientTests =
             task {
                 let proxy = proxy TestUtils.host
 
-                let! msg = proxy.GetNext queueName
+                try
+                    let! msg = proxy.GetNext queueName
+                    return false
 
-                return msg = None
+                with :? InvalidOperationException as e ->
+                    return true                    
             }
 
         Prop.forAll Arbitraries.invalidQueueNames property

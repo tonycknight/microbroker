@@ -17,6 +17,7 @@ type MicrobrokerCount =
 type IMicrobrokerProxy =
     abstract member Post: string -> MicrobrokerMessage -> Task<unit>
     abstract member PostMany: string -> seq<MicrobrokerMessage> -> Task<unit>
+    // TODO: need TryGetNext
     abstract member GetNext: string -> Task<MicrobrokerMessage option>
     abstract member GetQueueCounts: string[] -> Task<MicrobrokerCount[]>
     abstract member GetQueueCount: string -> Task<MicrobrokerCount option>
@@ -27,18 +28,25 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
     let getNext (queue: string) =
         task {
             let url = $"{config.brokerBaseUrl |> Strings.trimSlash}/queues/{queue}/message/"
-            let! rep = httpClient.GetAsync url
+            let! resp = httpClient.GetAsync url
 
-            let result =
-                match rep with
+            return
+                match resp with
                 | HttpOkRequestResponse(status, body, _, _) when status = HttpStatusCode.OK ->
                     MicrobrokerMessages.fromString body
-                | HttpOkRequestResponse(status, _, _, _) when status = HttpStatusCode.NoContent -> None
-                | _ ->
-                    HttpRequestResponse.loggable rep |> log.LogError
-                    None
-
-            return result
+                | HttpOkRequestResponse(status, _, _, _) -> None
+                | HttpErrorRequestResponse(status, body, _, _) when status = HttpStatusCode.NotFound -> None
+                | HttpErrorRequestResponse(status, body, _, errors) ->                    
+                    let msg = 
+                        match errors.errors |> Strings.join System.Environment.NewLine with
+                        | "" -> $"{status} received from server: {body}"
+                        | xs -> xs
+                    
+                    raise (System.InvalidOperationException(msg))
+                    
+                | HttpExceptionRequestResponse ex -> raise ex
+                | HttpBadGatewayResponse _ -> None
+                | HttpTooManyRequestsResponse _ -> None                
         }
 
 
