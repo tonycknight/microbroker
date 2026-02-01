@@ -55,6 +55,8 @@ module internal Strings =
         else
             uri
 
+    let join (delim: string) (values: seq<string>) = System.String.Join(delim, values)
+
 [<ExcludeFromCodeCoverage>]
 module internal Option =
 

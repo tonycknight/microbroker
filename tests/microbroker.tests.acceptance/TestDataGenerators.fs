@@ -37,6 +37,7 @@ module Arbitraries =
             && (s.Contains('?') |> not)
             && (s.Contains('/') |> not)
             && s <> "."
+            && s |> Seq.forall (Char.IsControl >> not)
 
         ArbMap.defaults
         |> ArbMap.arbitrary<string>

@@ -21,10 +21,10 @@ module internal TestUtils =
         HttpOkRequestResponse(HttpStatusCode.OK, json, None, [])
 
     let notfound json =
-        HttpErrorRequestResponse(HttpStatusCode.NotFound, json, [])
+        HttpErrorRequestResponse(HttpStatusCode.NotFound, json, [], HttpResponseErrors.empty)
 
     let badRequest json =
-        HttpErrorRequestResponse(HttpStatusCode.BadRequest, json, [])
+        HttpErrorRequestResponse(HttpStatusCode.BadRequest, json, [], HttpResponseErrors.empty)
 
     let httpClient (response: HttpRequestResponse) =
         let http = Substitute.For<IHttpClient>()
