@@ -14,8 +14,8 @@ type MicrobrokerCount =
           futureCount = 0 }
 
 type IMicrobrokerProxy =
-    abstract member PostAsync: string -> MicrobrokerMessage -> Task<unit>
-    abstract member PostManyAsync: string -> seq<MicrobrokerMessage> -> Task<unit>
+    abstract member PostAsync: string * MicrobrokerMessage -> Task<unit>
+    abstract member PostManyAsync: string * seq<MicrobrokerMessage> -> Task<unit>
     abstract member GetNextAsync: string -> Task<MicrobrokerMessage option>
     abstract member GetQueueCountsAsync: string[] -> Task<MicrobrokerCount[]>
     abstract member GetQueueCountAsync: string -> Task<MicrobrokerCount option>
@@ -50,7 +50,6 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
                 | _ -> onError resp
         }
 
-
     let postMany (queue: string) (messages: seq<MicrobrokerMessage>) =
         task {
             let messages = Array.ofSeq messages
@@ -78,9 +77,9 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
         }
 
     interface IMicrobrokerProxy with
-        member this.PostAsync queue message = postMany queue [ message ]
+        member this.PostAsync (queue: string, message: MicrobrokerMessage) = postMany queue [ message ]
 
-        member this.PostManyAsync queue messages = postMany queue messages
+        member this.PostManyAsync (queue, messages) = postMany queue messages
 
         member this.GetNextAsync queue =
             Throttling.exponentialWait config.throttleMaxTime (fun () -> getNext queue)
