@@ -1,6 +1,7 @@
 ﻿namespace Microbroker.Client
 
 open System.Net
+open System.Threading
 open System.Threading.Tasks
 
 type MicrobrokerCount =
@@ -14,13 +15,14 @@ type MicrobrokerCount =
           futureCount = 0 }
 
 type IMicrobrokerProxy =
-    abstract member PostAsync: string * MicrobrokerMessage -> Task<unit>
-    abstract member PostManyAsync: string * seq<MicrobrokerMessage> -> Task<unit>
-    abstract member GetNextAsync: string -> Task<MicrobrokerMessage option>
-    abstract member GetQueueCountsAsync: string[] -> Task<MicrobrokerCount[]>
-    abstract member GetQueueCountAsync: string -> Task<MicrobrokerCount option>
+    abstract member PostAsync: queue: string * message: MicrobrokerMessage * ?cancellation: CancellationToken -> Task<unit>
+    abstract member PostManyAsync: queue: string * messages: seq<MicrobrokerMessage> * ?cancellation: CancellationToken -> Task<unit>
+    abstract member GetNextAsync: queue: string * ?cancellation: CancellationToken -> Task<MicrobrokerMessage option>
+    abstract member GetQueueCountsAsync: queues: string[] * ?cancellation: CancellationToken -> Task<MicrobrokerCount[]>
+    abstract member GetQueueCountAsync: queue: string * ?cancellation: CancellationToken -> Task<MicrobrokerCount option>
 
 type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHttpClient) =
+
     let onError resp =
         match resp with
         | HttpErrorRequestResponse(status, _, _, _) when status = HttpStatusCode.NotFound -> None
@@ -77,14 +79,14 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
         }
 
     interface IMicrobrokerProxy with
-        member this.PostAsync (queue: string, message: MicrobrokerMessage) = postMany queue [ message ]
+        member this.PostAsync (queue: string, message: MicrobrokerMessage, ?cancellation: CancellationToken) = postMany queue [ message ]
 
-        member this.PostManyAsync (queue, messages) = postMany queue messages
+        member this.PostManyAsync (queue, messages, ?cancellation: CancellationToken) = postMany queue messages
 
-        member this.GetNextAsync queue =
+        member this.GetNextAsync (queue, ?cancellation: CancellationToken) =
             Throttling.exponentialWait config.throttleMaxTime (fun () -> getNext queue)
 
-        member this.GetQueueCountsAsync(queues: string[]) =
+        member this.GetQueueCountsAsync(queues: string[], ?cancellation: CancellationToken) =
             task {
                 let tasks = queues |> Array.map queueCount
 
@@ -93,4 +95,4 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
                 return counts |> Array.filter (fun c -> c.IsSome) |> Array.map (fun c -> c.Value)
             }
 
-        member this.GetQueueCountAsync queue = queueCount queue
+        member this.GetQueueCountAsync (queue: string, ?cancellation: CancellationToken) = queueCount queue

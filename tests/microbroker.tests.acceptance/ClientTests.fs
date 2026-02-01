@@ -35,7 +35,7 @@ module ClientTests =
         let property queueName =
             task {
                 try
-                    let! count = queueName |> (proxy TestUtils.host).GetQueueCountAsync
+                    let! count = (proxy TestUtils.host).GetQueueCountAsync queueName
 
                     return count = None
 
@@ -49,7 +49,7 @@ module ClientTests =
     let ``GetQueueCount on unknown queue name returns queue`` () =
         let property queueName =
             task {
-                let! count = queueName |> (proxy TestUtils.host).GetQueueCountAsync
+                let! count = (proxy TestUtils.host).GetQueueCountAsync queueName
 
                 return
                     count.IsSome
