@@ -39,7 +39,7 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
         | HttpTooManyRequestsResponse _ -> invalidOp "Server is unavailable - too many requests"
         | _ -> invalidOp $"Unrecognised response {resp}"
 
-    let getNext (queue: string) =
+    let getNext (cancellation: CancellationToken option) (queue: string) =
         task {
             let url = $"{config.brokerBaseUrl |> Strings.trimSlash}/queues/{queue}/message/"
             let! resp = httpClient.GetAsync url
@@ -52,7 +52,7 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
                 | _ -> onError resp
         }
 
-    let postMany (queue: string) (messages: seq<MicrobrokerMessage>) =
+    let postMany (cancellation: CancellationToken option) (queue: string) (messages: seq<MicrobrokerMessage>) =
         task {
             let messages = Array.ofSeq messages
 
@@ -66,7 +66,7 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
                 | resp -> onError resp |> ignore
         }
 
-    let queueCount queue =
+    let queueCount (cancellation: CancellationToken option) queue =
         task {
             let url = $"{Strings.trimSlash config.brokerBaseUrl}/queues/{queue}/"
             let! resp = httpClient.GetAsync url
@@ -79,20 +79,20 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
         }
 
     interface IMicrobrokerProxy with
-        member this.PostAsync (queue: string, message: MicrobrokerMessage, ?cancellation: CancellationToken) = postMany queue [ message ]
+        member this.PostAsync (queue: string, message: MicrobrokerMessage, ?cancellation: CancellationToken) = postMany cancellation queue [ message ]
 
-        member this.PostManyAsync (queue, messages, ?cancellation: CancellationToken) = postMany queue messages
+        member this.PostManyAsync (queue, messages, ?cancellation: CancellationToken) = postMany cancellation queue messages
 
         member this.GetNextAsync (queue, ?cancellation: CancellationToken) =
-            Throttling.exponentialWait config.throttleMaxTime (fun () -> getNext queue)
+            Throttling.exponentialWait config.throttleMaxTime (fun () -> getNext cancellation queue)
 
         member this.GetQueueCountsAsync(queues: string[], ?cancellation: CancellationToken) =
             task {
-                let tasks = queues |> Array.map queueCount
+                let tasks = queues |> Array.map (fun q -> queueCount cancellation q)
 
                 let! counts = Task.WhenAll tasks
 
                 return counts |> Array.filter (fun c -> c.IsSome) |> Array.map (fun c -> c.Value)
             }
 
-        member this.GetQueueCountAsync (queue: string, ?cancellation: CancellationToken) = queueCount queue
+        member this.GetQueueCountAsync (queue: string, ?cancellation: CancellationToken) = queueCount cancellation queue
