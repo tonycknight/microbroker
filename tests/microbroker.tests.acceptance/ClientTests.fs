@@ -61,6 +61,23 @@ module ClientTests =
         Prop.forAll Arbitraries.validQueueNames property
 
     [<Property(MaxTest = TestUtils.maxClientTests)>]
+    let ``GetQueueCount on unknown queue name with cancellation token returns queue`` () =
+        let property queueName =
+            task {
+                use cts = new System.Threading.CancellationTokenSource()
+                
+                let! count = (proxy TestUtils.host).GetQueueCountAsync (queueName, cts.Token)
+                
+                return
+                    count.IsSome
+                    && count.Value.name = queueName
+                    && count.Value.count = 0
+                    && count.Value.futureCount = 0
+            }
+
+        Prop.forAll Arbitraries.validQueueNames property
+
+    [<Property(MaxTest = TestUtils.maxClientTests)>]
     let ``GetQueueCount on known queue name returns count`` () =
         let property (msg, queueName) =
             task {
@@ -141,6 +158,20 @@ module ClientTests =
             }
 
         Prop.forAll Arbitraries.validQueueNames property
+    
+    [<Property(MaxTest = TestUtils.maxClientTests)>]
+    let ``GetNext on unknown queue with cancellation token returns None`` () =
+        let property (queueName) =
+            task {
+                use cts = new System.Threading.CancellationTokenSource()
+                let proxy = proxy TestUtils.host
+
+                let! msg = proxy.GetNextAsync (queueName, cts.Token)
+
+                return msg = None
+            }
+
+        Prop.forAll Arbitraries.validQueueNames property
 
     [<Property(MaxTest = TestUtils.maxClientTests)>]
     let ``Post to new queue returns count and message`` () =
@@ -165,13 +196,37 @@ module ClientTests =
         Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate(), Arbitraries.validQueueNames)) property
 
     [<Property(MaxTest = TestUtils.maxClientTests)>]
+    let ``Post to new queue with cancellation token returns count and message`` () =
+        let property (msg, queueName) =
+            task {
+                use cts = new System.Threading.CancellationTokenSource()
+                let proxy = proxy TestUtils.host
+
+                do! proxy.PostAsync(queueName, msg, cts.Token)
+
+                let! msg2 = proxy.GetNextAsync (queueName, cts.Token)
+
+                let eq = dateTimeOffsetWithLimits (TimeSpan.FromSeconds 1.)
+
+                return
+                    msg2.Value.content = msg.content
+                    && msg2.Value.messageType = msg.messageType
+                    && eq msg2.Value.created msg.created
+                    && eq msg2.Value.expiry msg.expiry
+                    && eq msg2.Value.active msg.active
+            }
+
+        Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate(), Arbitraries.validQueueNames)) property
+
+
+    [<Property(MaxTest = TestUtils.maxClientTests)>]
     let ``Post expiring msg to new queue returns no message`` () =
         let property (msg, queue) =
             task {
                 let proxy = proxy TestUtils.host
                 let expiry = TimeSpan.FromSeconds 10L
 
-                let! _ = getAllMessages proxy queue // drain the queue
+                let! _ = getAllMessages proxy queue
 
                 let msg = msg |> MicrobrokerMessages.expiry (fun () -> expiry)
 
@@ -215,6 +270,27 @@ module ClientTests =
                 let msgs = msgs |> Array.ofSeq
 
                 do! proxy.PostManyAsync(queue, msgs)
+
+                let! msgs2 = getAllMessages proxy queue
+                let msgs2Content = msgs2 |> Seq.rev |> Seq.map _.content |> Array.ofSeq
+                let msgsContent = msgs |> Seq.map _.content |> Array.ofSeq
+
+                return msgsContent.SequenceEqual(msgs2Content)
+            }
+
+        Prop.forAll
+            (Arb.zip (Arbitraries.MicrobrokerMessages.Generate() |> Arb.array, Arbitraries.validQueueNames))
+            property
+    
+    [<Property(MaxTest = TestUtils.maxClientTests)>]
+    let ``PostMany to queue with cancellation token repeated posts are FIFO`` () =
+        let property (msgs, queue) =
+            task {
+                use cts = new System.Threading.CancellationTokenSource()
+                let proxy = proxy TestUtils.host
+                let msgs = msgs |> Array.ofSeq
+
+                do! proxy.PostManyAsync(queue, msgs, cts.Token)
 
                 let! msgs2 = getAllMessages proxy queue
                 let msgs2Content = msgs2 |> Seq.rev |> Seq.map _.content |> Array.ofSeq
