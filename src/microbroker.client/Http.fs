@@ -2,6 +2,7 @@
 
 open System
 open System.Diagnostics.CodeAnalysis
+open System.Threading
 open System.Threading.Tasks
 open System.Net
 open System.Net.Http
@@ -34,7 +35,7 @@ type internal HttpRequestResponse =
     static member status(response: HttpRequestResponse) =
         match response with
         | HttpOkRequestResponse(status, _, _, _) -> status
-        | HttpTooManyRequestsResponse(_) -> System.Net.HttpStatusCode.TooManyRequests
+        | HttpTooManyRequestsResponse(_) -> HttpStatusCode.TooManyRequests
         | HttpErrorRequestResponse(status, _, _, _) -> status
         | HttpExceptionRequestResponse _ -> HttpStatusCode.InternalServerError
         | HttpBadGatewayResponse _ -> HttpStatusCode.BadGateway
@@ -46,13 +47,13 @@ type internal HttpRequestResponse =
 [<ExcludeFromCodeCoverage>]
 module internal Http =
 
-    let body (resp: HttpResponseMessage) =
+    let private body (cancellation: CancellationToken) (resp: HttpResponseMessage) =
         task {
             let! body =
                 match resp.Content.Headers.ContentEncoding |> Seq.tryHead with
                 | Some x when x = "gzip" ->
                     task {
-                        use s = resp.Content.ReadAsStream(System.Threading.CancellationToken.None)
+                        use s = resp.Content.ReadAsStream(cancellation)
                         return Strings.fromGzip s
                     }
                 | _ -> resp.Content.ReadAsStringAsync()
@@ -60,7 +61,7 @@ module internal Http =
             return body
         }
 
-    let errors body =
+    let private errors body =
         match body with
         | "" -> HttpResponseErrors.empty
         | json ->
@@ -74,27 +75,27 @@ module internal Http =
             { HttpResponseErrors.empty with
                 errors = msgs }
 
-    let contentHeaders (resp: HttpResponseMessage) =
+    let private contentHeaders (resp: HttpResponseMessage) =
         resp.Content.Headers
         |> Seq.collect (fun x -> x.Value |> Seq.map (fun v -> Strings.toLower x.Key, v))
 
-    let respHeaders (resp: HttpResponseMessage) =
+    let private respHeaders (resp: HttpResponseMessage) =
         resp.Headers
         |> Seq.collect (fun x -> x.Value |> Seq.map (fun v -> (Strings.toLower x.Key, v)))
 
-    let headers (resp: HttpResponseMessage) =
+    let private headers (resp: HttpResponseMessage) =
         respHeaders resp
         |> Seq.append (contentHeaders resp)
         |> Seq.sortBy fst
         |> List.ofSeq
 
-    let parse (resp: HttpResponseMessage) =
+    let private parse (cancellation: CancellationToken) (resp: HttpResponseMessage) =
         let respHeaders = headers resp
 
         match resp.IsSuccessStatusCode, resp.StatusCode with
         | true, _ ->
             task {
-                let! body = body resp
+                let! body = body cancellation resp
 
                 let mediaType =
                     resp.Content.Headers.ContentType
@@ -107,35 +108,41 @@ module internal Http =
         | false, HttpStatusCode.BadGateway -> HttpBadGatewayResponse(respHeaders) |> Tasks.toTaskResult
         | false, HttpStatusCode.BadRequest ->
             task {
-                let! body = body resp
+                let! body = body cancellation resp
 
                 return HttpErrorRequestResponse(resp.StatusCode, body, respHeaders, errors body)
             }
         | false, _ ->
             task {
-                let! body = body resp
+                let! body = body cancellation resp
                 return HttpErrorRequestResponse(resp.StatusCode, body, respHeaders, HttpResponseErrors.empty)
             }
 
-    let send (client: HttpClient) (msg: HttpRequestMessage) =
+    let send (cancellation: CancellationToken) (client: HttpClient) (msg: HttpRequestMessage) =
         task {
             try
-                use! resp = client.SendAsync msg
-                return! parse resp
+                use! resp = client.SendAsync(msg, cancellation)
+                return! parse cancellation resp
             with ex ->
                 return HttpExceptionRequestResponse(ex)
         }
 
-    let encodeUrl (value: string) = System.Web.HttpUtility.UrlEncode value
-
 type internal IHttpClient =
-    abstract member GetAsync: url: string -> Task<HttpRequestResponse>
-    abstract member PutAsync: url: string -> content: string -> Task<HttpRequestResponse>
-    abstract member PostAsync: url: string -> content: string -> Task<HttpRequestResponse>
+    abstract member GetAsync: url: string * ?cancellation: CancellationToken -> Task<HttpRequestResponse>
+
+    abstract member PutAsync:
+        url: string * content: string * ?cancellation: CancellationToken -> Task<HttpRequestResponse>
+
+    abstract member PostAsync:
+        url: string * content: string * ?cancellation: CancellationToken -> Task<HttpRequestResponse>
 
 [<ExcludeFromCodeCoverage>]
 type internal InternalHttpClient(httpClient: HttpClient) =
-    let httpSend = Http.send httpClient
+
+    let cancellationToken (token: CancellationToken option) =
+        token |> Option.defaultValue CancellationToken.None
+
+    let httpSend canx = Http.send canx httpClient
 
     let getReq (url: string) =
         new HttpRequestMessage(HttpMethod.Get, url)
@@ -157,6 +164,11 @@ type internal InternalHttpClient(httpClient: HttpClient) =
     let postJsonReq = sendJsonReq HttpMethod.Post
 
     interface IHttpClient with
-        member this.GetAsync url = url |> getReq |> httpSend
-        member this.PutAsync url content = content |> putJsonReq url |> httpSend
-        member this.PostAsync url content = content |> postJsonReq url |> httpSend
+        member this.GetAsync(url, cancellation) =
+            url |> getReq |> httpSend (cancellationToken cancellation)
+
+        member this.PutAsync(url, content, cancellation) =
+            content |> putJsonReq url |> httpSend (cancellationToken cancellation)
+
+        member this.PostAsync(url, content, cancellation) =
+            content |> postJsonReq url |> httpSend (cancellationToken cancellation)

@@ -41,16 +41,16 @@ module internal TestUtils =
     let httpClient (response: HttpRequestResponse) =
         let http = Substitute.For<IHttpClient>()
 
-        let param = Arg.Any<string>()
-
-        http.GetAsync(param).Returns(Tasks.toTaskResult response) |> ignore
+        http.GetAsync(Arg.Any<string>(), System.Threading.CancellationToken.None).Returns(Tasks.toTaskResult response)
+        |> ignore
 
         http
 
     let httpClientPost (response: HttpRequestResponse) =
         let http = Substitute.For<IHttpClient>()
 
-        (http.PostAsync (Arg.Any<string>()) (Arg.Any<string>())).Returns(Tasks.toTaskResult response)
+        (http.PostAsync(Arg.Any<string>(), Arg.Any<string>(), System.Threading.CancellationToken.None))
+            .Returns(Tasks.toTaskResult response)
         |> ignore
 
         http
@@ -58,7 +58,7 @@ module internal TestUtils =
     let httpClientPostException () =
         let http = Substitute.For<IHttpClient>()
 
-        (http.PostAsync (Arg.Any<string>()) (Arg.Any<string>()))
+        (http.PostAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<System.Threading.CancellationToken>()))
             .Returns(System.Threading.Tasks.Task.FromException<HttpRequestResponse>(new InvalidOperationException()))
         |> ignore
 
