@@ -47,7 +47,7 @@ type internal HttpRequestResponse =
 [<ExcludeFromCodeCoverage>]
 module internal Http =
 
-    let body (cancellation: System.Threading.CancellationToken) (resp: HttpResponseMessage) =
+    let private body (cancellation: System.Threading.CancellationToken) (resp: HttpResponseMessage) =
         task {
             let! body =
                 match resp.Content.Headers.ContentEncoding |> Seq.tryHead with
@@ -61,7 +61,7 @@ module internal Http =
             return body
         }
 
-    let errors body =
+    let private errors body =
         match body with
         | "" -> HttpResponseErrors.empty
         | json ->
@@ -75,21 +75,21 @@ module internal Http =
             { HttpResponseErrors.empty with
                 errors = msgs }
 
-    let contentHeaders (resp: HttpResponseMessage) =
+    let private contentHeaders (resp: HttpResponseMessage) =
         resp.Content.Headers
         |> Seq.collect (fun x -> x.Value |> Seq.map (fun v -> Strings.toLower x.Key, v))
 
-    let respHeaders (resp: HttpResponseMessage) =
+    let private respHeaders (resp: HttpResponseMessage) =
         resp.Headers
         |> Seq.collect (fun x -> x.Value |> Seq.map (fun v -> (Strings.toLower x.Key, v)))
 
-    let headers (resp: HttpResponseMessage) =
+    let private headers (resp: HttpResponseMessage) =
         respHeaders resp
         |> Seq.append (contentHeaders resp)
         |> Seq.sortBy fst
         |> List.ofSeq
 
-    let parse (cancellation: System.Threading.CancellationToken) (resp: HttpResponseMessage) =
+    let private parse (cancellation: System.Threading.CancellationToken) (resp: HttpResponseMessage) =
         let respHeaders = headers resp
 
         match resp.IsSuccessStatusCode, resp.StatusCode with
@@ -126,8 +126,6 @@ module internal Http =
             with ex ->
                 return HttpExceptionRequestResponse(ex)
         }
-
-    let encodeUrl (value: string) = System.Web.HttpUtility.UrlEncode value
 
 type internal IHttpClient =
     abstract member GetAsync: url: string * ?cancellation: CancellationToken -> Task<HttpRequestResponse>
