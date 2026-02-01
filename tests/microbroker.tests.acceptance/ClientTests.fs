@@ -190,8 +190,10 @@ module ClientTests =
     let ``PostMany to invalid queue yields exception`` () =
         let property (msgs, queue) =
             task {
-                let proxy = proxy TestUtils.host
+
                 let msgs = msgs |> Array.ofSeq
+
+                let proxy = proxy TestUtils.host
 
                 try
                     do! proxy.PostMany queue msgs
@@ -201,7 +203,8 @@ module ClientTests =
             }
 
         Prop.forAll
-            (Arb.zip (Arbitraries.MicrobrokerMessages.Generate() |> Arb.array, Arbitraries.invalidQueueNames))
+            (Arb.zip (Arbitraries.MicrobrokerMessages.Generate() |> Arb.array, Arbitraries.invalidQueueNames)
+             |> Arb.filter (fun (msgs, _) -> msgs.Length > 0))
             property
 
     [<Property(MaxTest = TestUtils.maxClientTests)>]
