@@ -121,7 +121,7 @@ module MicrobrokerProxyTests =
         }
 
     [<Fact>]
-    let ``GetQueueCount on unknown name returning 400 returns None`` () =
+    let ``GetQueueCount on bad request throws exception`` () =
         task {
             let name = "aaa"
 
@@ -130,7 +130,10 @@ module MicrobrokerProxyTests =
                   count = 1
                   futureCount = 2 }
 
-            let resp = count |> toJson |> badRequest
+            let json = toJson count
+            let errors = [| "test error" |]
+            let resp = badRequestErrors json errors
+
             let http = httpClient resp
             let proxy = defaultProxy http
 
@@ -138,8 +141,8 @@ module MicrobrokerProxyTests =
                 let! r = proxy.GetQueueCount(name)
                 r |> should equal None
 
-            with :? InvalidOperationException as e ->
-                ignore 0
+            with :? InvalidOperationException as e when e.Message = errors.[0] ->
+                ignore e
         }
 
     [<Fact>]

@@ -26,6 +26,15 @@ module internal TestUtils =
     let badRequest json =
         HttpErrorRequestResponse(HttpStatusCode.BadRequest, json, [], HttpResponseErrors.empty)
 
+    let badRequestErrors json errors =
+        HttpErrorRequestResponse(
+            HttpStatusCode.BadRequest,
+            json,
+            [],
+            { HttpResponseErrors.empty with
+                errors = errors }
+        )
+
     let exceptionResponse ex = HttpExceptionRequestResponse ex
 
     let badGatewayResponse () = HttpBadGatewayResponse []
