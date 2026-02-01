@@ -2,7 +2,6 @@
 
 open System.Net
 open System.Threading.Tasks
-open Microsoft.Extensions.Logging
 
 type MicrobrokerCount =
     { name: string
@@ -21,9 +20,7 @@ type IMicrobrokerProxy =
     abstract member GetQueueCounts: string[] -> Task<MicrobrokerCount[]>
     abstract member GetQueueCount: string -> Task<MicrobrokerCount option>
 
-type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHttpClient, logger: ILoggerFactory) =
-    let log = logger.CreateLogger<MicrobrokerProxy>()
-
+type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHttpClient) =
     let onError resp =
         match resp with
         | HttpErrorRequestResponse(status, _, _, _) when status = HttpStatusCode.NotFound -> None

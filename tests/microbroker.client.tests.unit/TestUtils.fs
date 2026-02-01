@@ -2,7 +2,6 @@
 
 open System
 open System.Net
-open Microsoft.Extensions.Logging
 open Microbroker.Client
 open NSubstitute
 
@@ -14,8 +13,6 @@ module internal TestUtils =
     let testConfig =
         { MicrobrokerConfiguration.brokerBaseUrl = "a"
           throttleMaxTime = TimeSpan.FromSeconds(1.) }
-
-    let logger = Substitute.For<ILoggerFactory>()
 
     let ok json =
         HttpOkRequestResponse(HttpStatusCode.OK, json, None, [])
@@ -67,7 +64,7 @@ module internal TestUtils =
 
         http
 
-    let proxy config logger client =
-        new MicrobrokerProxy(config, client, logger) :> IMicrobrokerProxy
+    let proxy config client =
+        new MicrobrokerProxy(config, client) :> IMicrobrokerProxy
 
-    let defaultProxy client = proxy testConfig logger client
+    let defaultProxy client = proxy testConfig client

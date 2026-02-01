@@ -5,7 +5,6 @@ open System.Linq
 open System.Threading.Tasks
 open FsCheck.FSharp
 open FsCheck.Xunit
-open Microsoft.Extensions.Logging
 open Microbroker.Client
 
 module ClientTests =
@@ -17,8 +16,7 @@ module ClientTests =
             { MicrobrokerConfiguration.brokerBaseUrl = baseUrl
               throttleMaxTime = TimeSpan.FromSeconds 1. }
 
-        let log = NSubstitute.Substitute.For<ILoggerFactory>()
-        new MicrobrokerProxy(config, ihc, log) :> IMicrobrokerProxy
+        new MicrobrokerProxy(config, ihc) :> IMicrobrokerProxy
 
     let getAllMessages proxy queue =
         let rec getAll (proxy: IMicrobrokerProxy) queue results =
