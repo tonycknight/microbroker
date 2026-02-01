@@ -16,7 +16,7 @@ module MicrobrokerProxyTests =
             let http = httpClient resp
             let proxy = defaultProxy http
 
-            let! r = proxy.GetQueueCounts([| "" |])
+            let! r = proxy.GetQueueCountsAsync([| "" |])
 
             r.Length |> should equal 0
         }
@@ -35,7 +35,7 @@ module MicrobrokerProxyTests =
             let http = httpClient resp
             let proxy = defaultProxy http
 
-            let! r = proxy.GetQueueCounts([| name |])
+            let! r = proxy.GetQueueCountsAsync([| name |])
 
             r.Length |> should equal 1
             r.[0] |> should equal count
@@ -53,7 +53,7 @@ module MicrobrokerProxyTests =
             let http = httpClient resp
             let proxy = defaultProxy http
 
-            let! r = proxy.GetQueueCounts([| Guid.NewGuid().ToString() |])
+            let! r = proxy.GetQueueCountsAsync([| Guid.NewGuid().ToString() |])
 
             r.Length |> should equal 0
         }
@@ -72,7 +72,7 @@ module MicrobrokerProxyTests =
             let http = httpClient resp
             let proxy = defaultProxy http
 
-            let! r = proxy.GetQueueCount(name)
+            let! r = proxy.GetQueueCountAsync(name)
 
             Option.isSome r |> should equal true
             r.Value.name |> should equal name
@@ -94,7 +94,7 @@ module MicrobrokerProxyTests =
             let http = httpClient resp
             let proxy = defaultProxy http
 
-            let! r = proxy.GetQueueCount(name.ToUpper())
+            let! r = proxy.GetQueueCountAsync(name.ToUpper())
 
             r.Value.name |> should equal name
             r.Value.count |> should equal count.count
@@ -115,7 +115,7 @@ module MicrobrokerProxyTests =
             let http = httpClient resp
             let proxy = defaultProxy http
 
-            let! r = proxy.GetQueueCount(name)
+            let! r = proxy.GetQueueCountAsync(name)
 
             r |> should equal None
         }
@@ -138,7 +138,7 @@ module MicrobrokerProxyTests =
             let proxy = defaultProxy http
 
             try
-                let! r = proxy.GetQueueCount(name)
+                let! r = proxy.GetQueueCountAsync(name)
                 r |> should equal None
 
             with :? InvalidOperationException as e when e.Message = errors.[0] ->
@@ -155,7 +155,7 @@ module MicrobrokerProxyTests =
             let proxy = defaultProxy http
 
             try
-                let! r = proxy.GetQueueCount(name)
+                let! r = proxy.GetQueueCountAsync(name)
                 failwith "No exception thrown"
 
             with :? InvalidOperationException as e ->
@@ -172,7 +172,7 @@ module MicrobrokerProxyTests =
             let proxy = defaultProxy http
 
             try
-                let! r = proxy.GetQueueCount(name)
+                let! r = proxy.GetQueueCountAsync(name)
                 failwith "No exception thrown"
 
             with :? InvalidOperationException as e ->
@@ -189,7 +189,7 @@ module MicrobrokerProxyTests =
             let proxy = defaultProxy http
 
             try
-                let! r = proxy.GetQueueCount(name)
+                let! r = proxy.GetQueueCountAsync(name)
                 r |> should equal None
 
             with :? ArgumentNullException as e ->
@@ -203,7 +203,7 @@ module MicrobrokerProxyTests =
             let http = httpClient resp
             let proxy = defaultProxy http
 
-            let! r = proxy.GetNext("test")
+            let! r = proxy.GetNextAsync("test")
 
             r |> should equal None
         }
@@ -216,7 +216,7 @@ module MicrobrokerProxyTests =
             let proxy = defaultProxy http
 
             try
-                let! r = proxy.GetNext("test")
+                let! r = proxy.GetNextAsync("test")
                 failwith "Exception not thrown"
 
             with :? InvalidOperationException as e ->
@@ -230,7 +230,7 @@ module MicrobrokerProxyTests =
             let http = httpClient resp
             let proxy = defaultProxy http
 
-            let! r = proxy.GetNext("test")
+            let! r = proxy.GetNextAsync("test")
 
             r |> should equal None
         }
@@ -245,7 +245,7 @@ module MicrobrokerProxyTests =
             let proxy = defaultProxy http
 
             try
-                let! r = proxy.GetNext(name)
+                let! r = proxy.GetNextAsync(name)
                 failwith "No exception thrown"
 
             with :? InvalidOperationException as e ->
@@ -262,7 +262,7 @@ module MicrobrokerProxyTests =
             let proxy = defaultProxy http
 
             try
-                let! r = proxy.GetNext(name)
+                let! r = proxy.GetNextAsync(name)
                 failwith "No exception thrown"
 
             with :? InvalidOperationException as e ->
@@ -279,7 +279,7 @@ module MicrobrokerProxyTests =
             let proxy = defaultProxy http
 
             try
-                let! r = proxy.GetNext(name)
+                let! r = proxy.GetNextAsync(name)
                 failwith "No exception thrown"
 
             with :? ArgumentNullException as e ->
@@ -300,7 +300,7 @@ module MicrobrokerProxyTests =
             let http = httpClient resp
             let proxy = defaultProxy http
 
-            let! r = proxy.GetNext("test")
+            let! r = proxy.GetNextAsync("test")
 
             r |> should equal (Some msg)
         }
@@ -312,7 +312,7 @@ module MicrobrokerProxyTests =
             let http = httpClientPost resp
             let proxy = defaultProxy http
 
-            let! r = proxy.PostMany "queue" []
+            let! r = proxy.PostManyAsync "queue" []
 
             http.DidNotReceiveWithAnyArgs().PostAsync (Arg.Any<string>()) (Arg.Any<string>())
             |> ignore
@@ -336,7 +336,7 @@ module MicrobrokerProxyTests =
             let proxy = defaultProxy http
 
             try
-                let! r = proxy.PostMany "queue" [| msg |]
+                let! r = proxy.PostManyAsync "queue" [| msg |]
                 failwith "Exception not thrown"
 
             with :? ArgumentException as e when e.Message = ex.Message ->
@@ -359,7 +359,7 @@ module MicrobrokerProxyTests =
             let proxy = defaultProxy http
 
             try
-                let! r = proxy.PostMany "queue" [| msg |]
+                let! r = proxy.PostManyAsync "queue" [| msg |]
                 failwith "Exception not thrown"
 
             with :? InvalidOperationException as e ->
@@ -382,7 +382,7 @@ module MicrobrokerProxyTests =
             let proxy = defaultProxy http
 
             try
-                let! r = proxy.PostMany "queue" [| msg |]
+                let! r = proxy.PostManyAsync "queue" [| msg |]
                 failwith "Exception not thrown"
 
             with :? InvalidOperationException as e ->
@@ -405,7 +405,7 @@ module MicrobrokerProxyTests =
             let proxy = defaultProxy http
 
             try
-                let! r = proxy.PostMany "queue" [| msg |]
+                let! r = proxy.PostManyAsync "queue" [| msg |]
                 failwith "Exception not thrown"
 
             with :? InvalidOperationException as e ->
@@ -426,7 +426,7 @@ module MicrobrokerProxyTests =
                     active = DateTimeOffset.UtcNow
                     expiry = DateTimeOffset.MaxValue } ]
 
-            let! r = proxy.PostMany "queue" msgs
+            let! r = proxy.PostManyAsync "queue" msgs
 
             http.ReceivedWithAnyArgs().PostAsync (Arg.Any<string>()) (toJson msgs) |> ignore
         }
@@ -445,7 +445,7 @@ module MicrobrokerProxyTests =
                   active = DateTimeOffset.UtcNow
                   expiry = DateTimeOffset.MaxValue }
 
-            let! r = proxy.Post "queue" msg
+            let! r = proxy.PostAsync "queue" msg
 
             http.ReceivedWithAnyArgs().PostAsync (Arg.Any<string>()) (toJson [| msg |])
             |> ignore
@@ -466,7 +466,7 @@ module MicrobrokerProxyTests =
                   expiry = DateTimeOffset.MaxValue }
 
             try
-                let! r = proxy.Post "queue" msg
+                let! r = proxy.PostAsync "queue" msg
                 failwith "Exception not raised"
 
             with :? InvalidOperationException as e ->
@@ -488,7 +488,7 @@ module MicrobrokerProxyTests =
                   expiry = DateTimeOffset.MaxValue }
 
             try
-                let! r = proxy.Post "queue" msg
+                let! r = proxy.PostAsync "queue" msg
                 failwith "Exception not raised"
 
             with :? InvalidOperationException as e ->
@@ -510,7 +510,7 @@ module MicrobrokerProxyTests =
                   expiry = DateTimeOffset.MaxValue }
 
             try
-                let! r = proxy.Post "queue" msg
+                let! r = proxy.PostAsync "queue" msg
                 failwith "Exception not raised"
 
             with :? InvalidOperationException as e ->

@@ -14,11 +14,11 @@ type MicrobrokerCount =
           futureCount = 0 }
 
 type IMicrobrokerProxy =
-    abstract member Post: string -> MicrobrokerMessage -> Task<unit>
-    abstract member PostMany: string -> seq<MicrobrokerMessage> -> Task<unit>
-    abstract member GetNext: string -> Task<MicrobrokerMessage option>
-    abstract member GetQueueCounts: string[] -> Task<MicrobrokerCount[]>
-    abstract member GetQueueCount: string -> Task<MicrobrokerCount option>
+    abstract member PostAsync: string -> MicrobrokerMessage -> Task<unit>
+    abstract member PostManyAsync: string -> seq<MicrobrokerMessage> -> Task<unit>
+    abstract member GetNextAsync: string -> Task<MicrobrokerMessage option>
+    abstract member GetQueueCountsAsync: string[] -> Task<MicrobrokerCount[]>
+    abstract member GetQueueCountAsync: string -> Task<MicrobrokerCount option>
 
 type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHttpClient) =
     let onError resp =
@@ -78,14 +78,14 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
         }
 
     interface IMicrobrokerProxy with
-        member this.Post queue message = postMany queue [ message ]
+        member this.PostAsync queue message = postMany queue [ message ]
 
-        member this.PostMany queue messages = postMany queue messages
+        member this.PostManyAsync queue messages = postMany queue messages
 
-        member this.GetNext queue =
+        member this.GetNextAsync queue =
             Throttling.exponentialWait config.throttleMaxTime (fun () -> getNext queue)
 
-        member this.GetQueueCounts(queues: string[]) =
+        member this.GetQueueCountsAsync(queues: string[]) =
             task {
                 let tasks = queues |> Array.map queueCount
 
@@ -94,4 +94,4 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
                 return counts |> Array.filter (fun c -> c.IsSome) |> Array.map (fun c -> c.Value)
             }
 
-        member this.GetQueueCount queue = queueCount queue
+        member this.GetQueueCountAsync queue = queueCount queue

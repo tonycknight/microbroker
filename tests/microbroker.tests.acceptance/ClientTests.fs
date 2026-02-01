@@ -21,7 +21,7 @@ module ClientTests =
     let getAllMessages proxy queue =
         let rec getAll (proxy: IMicrobrokerProxy) queue results =
             task {
-                let! msg = proxy.GetNext queue
+                let! msg = proxy.GetNextAsync queue
 
                 match msg with
                 | None -> return results
@@ -35,7 +35,7 @@ module ClientTests =
         let property queueName =
             task {
                 try
-                    let! count = queueName |> (proxy TestUtils.host).GetQueueCount
+                    let! count = queueName |> (proxy TestUtils.host).GetQueueCountAsync
 
                     return count = None
 
@@ -49,7 +49,7 @@ module ClientTests =
     let ``GetQueueCount on unknown queue name returns queue`` () =
         let property queueName =
             task {
-                let! count = queueName |> (proxy TestUtils.host).GetQueueCount
+                let! count = queueName |> (proxy TestUtils.host).GetQueueCountAsync
 
                 return
                     count.IsSome
@@ -65,9 +65,9 @@ module ClientTests =
         let property (msg, queueName) =
             task {
                 let proxy = proxy TestUtils.host
-                do! proxy.Post queueName msg
+                do! proxy.PostAsync queueName msg
 
-                let! count = proxy.GetQueueCount queueName
+                let! count = proxy.GetQueueCountAsync queueName
 
                 return count.Value.count = 1 && count.Value.futureCount = 0
             }
@@ -81,9 +81,9 @@ module ClientTests =
                 let proxy = proxy TestUtils.host
                 let queueNames = [| queueName |]
                 let msgs = Array.ofSeq msgs
-                do! msgs |> proxy.PostMany queueName
+                do! msgs |> proxy.PostManyAsync queueName
 
-                let! counts = proxy.GetQueueCounts queueNames
+                let! counts = proxy.GetQueueCountsAsync queueNames
 
                 let countNames = counts |> Seq.map _.name |> Seq.sort |> Array.ofSeq
 
@@ -102,7 +102,7 @@ module ClientTests =
             task {
                 let proxy = proxy TestUtils.host
 
-                let! counts = proxy.GetQueueCounts [| queueName |]
+                let! counts = proxy.GetQueueCountsAsync [| queueName |]
 
                 return
                     counts.Length = 1
@@ -120,7 +120,7 @@ module ClientTests =
                 let proxy = proxy TestUtils.host
 
                 try
-                    let! msg = proxy.GetNext queueName
+                    let! msg = proxy.GetNextAsync queueName
                     return msg = None
 
                 with :? InvalidOperationException as e ->
@@ -135,7 +135,7 @@ module ClientTests =
             task {
                 let proxy = proxy TestUtils.host
 
-                let! msg = proxy.GetNext queueName
+                let! msg = proxy.GetNextAsync queueName
 
                 return msg = None
             }
@@ -148,9 +148,9 @@ module ClientTests =
             task {
                 let proxy = proxy TestUtils.host
 
-                do! proxy.Post queueName msg
+                do! proxy.PostAsync queueName msg
 
-                let! msg2 = proxy.GetNext queueName
+                let! msg2 = proxy.GetNextAsync queueName
 
                 let eq = dateTimeOffsetWithLimits (TimeSpan.FromSeconds 1.)
 
@@ -175,11 +175,11 @@ module ClientTests =
 
                 let msg = msg |> MicrobrokerMessages.expiry (fun () -> expiry)
 
-                do! proxy.Post queue msg
+                do! proxy.PostAsync queue msg
 
                 do! Task.Delay(TimeSpan.FromSeconds 2L + expiry)
 
-                let! msg = proxy.GetNext queue
+                let! msg = proxy.GetNextAsync queue
 
                 return msg = None
             }
@@ -196,7 +196,7 @@ module ClientTests =
                 let proxy = proxy TestUtils.host
 
                 try
-                    do! proxy.PostMany queue msgs
+                    do! proxy.PostManyAsync queue msgs
                     return false
                 with :? InvalidOperationException as e ->
                     return true
@@ -214,7 +214,7 @@ module ClientTests =
                 let proxy = proxy TestUtils.host
                 let msgs = msgs |> Array.ofSeq
 
-                do! proxy.PostMany queue msgs
+                do! proxy.PostManyAsync queue msgs
 
                 let! msgs2 = getAllMessages proxy queue
                 let msgs2Content = msgs2 |> Seq.rev |> Seq.map _.content |> Array.ofSeq
