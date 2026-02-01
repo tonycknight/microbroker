@@ -10,9 +10,8 @@ open FsUnit
 module DependencyInjectionTests =
 
     let serviceCollection () =
-        (new ServiceCollection() :> IServiceCollection)
-            .AddSingleton<HttpClient>(new HttpClient())
-            
+        (new ServiceCollection() :> IServiceCollection).AddSingleton<HttpClient>(new HttpClient())
+
     let config () =
         { MicrobrokerConfiguration.brokerBaseUrl = "aaaa"
           throttleMaxTime = TimeSpan.FromSeconds 5. }
