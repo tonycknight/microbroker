@@ -121,7 +121,7 @@ module internal Http =
     let send (cancellation: System.Threading.CancellationToken) (client: HttpClient) (msg: HttpRequestMessage) =
         task {
             try
-                use! resp = client.SendAsync (msg, cancellation)
+                use! resp = client.SendAsync(msg, cancellation)
                 return! parse cancellation resp
             with ex ->
                 return HttpExceptionRequestResponse(ex)
@@ -131,12 +131,16 @@ module internal Http =
 
 type internal IHttpClient =
     abstract member GetAsync: url: string * ?cancellation: CancellationToken -> Task<HttpRequestResponse>
-    abstract member PutAsync: url: string * content: string * ?cancellation: CancellationToken -> Task<HttpRequestResponse>
-    abstract member PostAsync: url: string * content: string * ?cancellation: CancellationToken -> Task<HttpRequestResponse>
+
+    abstract member PutAsync:
+        url: string * content: string * ?cancellation: CancellationToken -> Task<HttpRequestResponse>
+
+    abstract member PostAsync:
+        url: string * content: string * ?cancellation: CancellationToken -> Task<HttpRequestResponse>
 
 [<ExcludeFromCodeCoverage>]
 type internal InternalHttpClient(httpClient: HttpClient) =
-    
+
     let cancellationToken (token: System.Threading.CancellationToken option) =
         token |> Option.defaultValue System.Threading.CancellationToken.None
 
@@ -162,6 +166,11 @@ type internal InternalHttpClient(httpClient: HttpClient) =
     let postJsonReq = sendJsonReq HttpMethod.Post
 
     interface IHttpClient with
-        member this.GetAsync (url, cancellation) = url |> getReq |> httpSend (cancellationToken cancellation)
-        member this.PutAsync (url, content, cancellation) = content |> putJsonReq url |> httpSend (cancellationToken cancellation)
-        member this.PostAsync (url, content, cancellation) = content |> postJsonReq url |> httpSend (cancellationToken cancellation)
+        member this.GetAsync(url, cancellation) =
+            url |> getReq |> httpSend (cancellationToken cancellation)
+
+        member this.PutAsync(url, content, cancellation) =
+            content |> putJsonReq url |> httpSend (cancellationToken cancellation)
+
+        member this.PostAsync(url, content, cancellation) =
+            content |> postJsonReq url |> httpSend (cancellationToken cancellation)
