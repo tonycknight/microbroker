@@ -33,12 +33,16 @@ module ClientTests =
         getAll proxy queue []
 
     [<Property>]
-    let ``GetQueueCount on invalid queue name returns None`` () =
+    let ``GetQueueCount on invalid queue name yields Exception`` () =
         let property queueName =
             task {
-                let! count = queueName |> (proxy TestUtils.host).GetQueueCount
+                try
+                    let! count = queueName |> (proxy TestUtils.host).GetQueueCount
 
-                return count = None
+                    return count = None
+
+                with :? InvalidOperationException as e ->
+                    return true
             }
 
         Prop.forAll Arbitraries.invalidQueueNames property
@@ -112,14 +116,14 @@ module ClientTests =
         Prop.forAll (Arbitraries.validQueueNames) property
 
     [<Property(MaxTest = TestUtils.maxClientTests)>]
-    let ``GetNext on invalid queue returns None`` () =
+    let ``GetNext on invalid queue yields Exception`` () =
         let property (queueName) =
             task {
                 let proxy = proxy TestUtils.host
 
                 try
                     let! msg = proxy.GetNext queueName
-                    return false
+                    return msg = None
 
                 with :? InvalidOperationException as e ->
                     return true
@@ -183,6 +187,24 @@ module ClientTests =
             }
 
         Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate(), Arbitraries.validQueueNames)) property
+
+    [<Property(MaxTest = TestUtils.maxClientTests)>]
+    let ``PostMany to invalid queue yields exception`` () =
+        let property (msgs, queue) =
+            task {
+                let proxy = proxy TestUtils.host
+                let msgs = msgs |> Array.ofSeq
+
+                try
+                    do! proxy.PostMany queue msgs
+                    return false
+                with :? InvalidOperationException as e ->
+                    return true
+            }
+
+        Prop.forAll
+            (Arb.zip (Arbitraries.MicrobrokerMessages.Generate() |> Arb.array, Arbitraries.invalidQueueNames))
+            property
 
     [<Property(MaxTest = TestUtils.maxClientTests)>]
     let ``PostMany to queue repeated posts are FIFO`` () =

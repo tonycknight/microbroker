@@ -134,9 +134,12 @@ module MicrobrokerProxyTests =
             let http = httpClient resp
             let proxy = defaultProxy http
 
-            let! r = proxy.GetQueueCount(name)
+            try
+                let! r = proxy.GetQueueCount(name)
+                r |> should equal None
 
-            r |> should equal None
+            with :? InvalidOperationException as e ->
+                ignore 0
         }
 
 

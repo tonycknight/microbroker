@@ -24,6 +24,22 @@ type IMicrobrokerProxy =
 type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHttpClient, logger: ILoggerFactory) =
     let log = logger.CreateLogger<MicrobrokerProxy>()
 
+    let onError resp =
+        match resp with
+        | HttpErrorRequestResponse(status, _, _, _) when status = HttpStatusCode.NotFound -> None
+        | HttpErrorRequestResponse(status, body, _, errors) ->
+            let msg =
+                match errors.errors |> Strings.join System.Environment.NewLine with
+                | "" -> $"{status} received from server: {body}"
+                | xs -> xs
+
+            invalidOp msg
+
+        | HttpExceptionRequestResponse ex -> raise ex
+        | HttpBadGatewayResponse _ -> invalidOp "Server is unavailable"
+        | HttpTooManyRequestsResponse _ -> invalidOp "Server is unavailable - too many requests"
+        | _ -> invalidOp $"Unrecognised response {resp}"
+
     let getNext (queue: string) =
         task {
             let url = $"{config.brokerBaseUrl |> Strings.trimSlash}/queues/{queue}/message/"
@@ -34,18 +50,7 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
                 | HttpOkRequestResponse(status, body, _, _) when status = HttpStatusCode.OK ->
                     MicrobrokerMessages.fromString body
                 | HttpOkRequestResponse(status, _, _, _) -> None
-                | HttpErrorRequestResponse(status, body, _, _) when status = HttpStatusCode.NotFound -> None
-                | HttpErrorRequestResponse(status, body, _, errors) ->
-                    let msg =
-                        match errors.errors |> Strings.join System.Environment.NewLine with
-                        | "" -> $"{status} received from server: {body}"
-                        | xs -> xs
-
-                    raise (System.InvalidOperationException(msg))
-
-                | HttpExceptionRequestResponse ex -> raise ex
-                | HttpBadGatewayResponse _ -> None
-                | HttpTooManyRequestsResponse _ -> None
+                | _ -> onError resp
         }
 
 
@@ -58,13 +63,9 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
 
                 let url = $"{Strings.trimSlash config.brokerBaseUrl}/queues/{queue}/messages/"
 
-                try
-                    match! httpClient.PostAsync url brokerMessages with
-                    | HttpOkRequestResponse _ -> $"{messages.Length} messages sent to broker" |> log.LogDebug
-                    | resp -> HttpRequestResponse.loggable resp |> log.LogError
-
-                with ex ->
-                    log.LogError(ex, ex.Message)
+                match! httpClient.PostAsync url brokerMessages with
+                | HttpOkRequestResponse _ -> ignore 0
+                | resp -> onError resp |> ignore
         }
 
     let queueCount queue =
@@ -76,9 +77,7 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
                 match resp with
                 | HttpOkRequestResponse(_, body, _, _) ->
                     Newtonsoft.Json.JsonConvert.DeserializeObject<MicrobrokerCount>(body) |> Some
-                | resp ->
-                    HttpRequestResponse.loggable resp |> log.LogError
-                    None
+                | resp -> onError resp
         }
 
     interface IMicrobrokerProxy with
