@@ -42,7 +42,7 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
     let getNext (cancellation: CancellationToken option) (queue: string) =
         task {
             let url = $"{config.brokerBaseUrl |> Strings.trimSlash}/queues/{queue}/message/"
-            let! resp = httpClient.GetAsync url
+            let! resp = httpClient.GetAsync (url, cancellation |> Option.defaultValue CancellationToken.None)
 
             return
                 match resp with
@@ -61,7 +61,7 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
 
                 let url = $"{Strings.trimSlash config.brokerBaseUrl}/queues/{queue}/messages/"
 
-                match! httpClient.PostAsync url brokerMessages with
+                match! httpClient.PostAsync (url, brokerMessages, cancellation |> Option.defaultValue CancellationToken.None) with
                 | HttpOkRequestResponse _ -> ignore 0
                 | resp -> onError resp |> ignore
         }
@@ -69,7 +69,7 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
     let queueCount (cancellation: CancellationToken option) queue =
         task {
             let url = $"{Strings.trimSlash config.brokerBaseUrl}/queues/{queue}/"
-            let! resp = httpClient.GetAsync url
+            let! resp = httpClient.GetAsync (url, cancellation |> Option.defaultValue CancellationToken.None)
 
             return
                 match resp with

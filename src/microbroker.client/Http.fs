@@ -2,6 +2,7 @@
 
 open System
 open System.Diagnostics.CodeAnalysis
+open System.Threading
 open System.Threading.Tasks
 open System.Net
 open System.Net.Http
@@ -129,9 +130,9 @@ module internal Http =
     let encodeUrl (value: string) = System.Web.HttpUtility.UrlEncode value
 
 type internal IHttpClient =
-    abstract member GetAsync: url: string -> Task<HttpRequestResponse>
-    abstract member PutAsync: url: string -> content: string -> Task<HttpRequestResponse>
-    abstract member PostAsync: url: string -> content: string -> Task<HttpRequestResponse>
+    abstract member GetAsync: url: string * ?cancellation: CancellationToken -> Task<HttpRequestResponse>
+    abstract member PutAsync: url: string * content: string * ?cancellation: CancellationToken -> Task<HttpRequestResponse>
+    abstract member PostAsync: url: string * content: string * ?cancellation: CancellationToken -> Task<HttpRequestResponse>
 
 [<ExcludeFromCodeCoverage>]
 type internal InternalHttpClient(httpClient: HttpClient) =
@@ -157,6 +158,6 @@ type internal InternalHttpClient(httpClient: HttpClient) =
     let postJsonReq = sendJsonReq HttpMethod.Post
 
     interface IHttpClient with
-        member this.GetAsync url = url |> getReq |> httpSend
-        member this.PutAsync url content = content |> putJsonReq url |> httpSend
-        member this.PostAsync url content = content |> postJsonReq url |> httpSend
+        member this.GetAsync (url, cancellation) = url |> getReq |> httpSend
+        member this.PutAsync (url, content, cancellation) = content |> putJsonReq url |> httpSend
+        member this.PostAsync (url, content, cancellation) = content |> postJsonReq url |> httpSend

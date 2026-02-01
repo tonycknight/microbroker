@@ -314,7 +314,7 @@ module MicrobrokerProxyTests =
 
             let! r = proxy.PostManyAsync ("queue", [])
 
-            http.DidNotReceiveWithAnyArgs().PostAsync (Arg.Any<string>()) (Arg.Any<string>())
+            http.DidNotReceiveWithAnyArgs().PostAsync (Arg.Any<string>(), Arg.Any<string>(), System.Threading.CancellationToken.None)
             |> ignore
         }
 
@@ -428,7 +428,7 @@ module MicrobrokerProxyTests =
 
             let! r = proxy.PostManyAsync ("queue", msgs)
 
-            http.ReceivedWithAnyArgs().PostAsync (Arg.Any<string>()) (toJson msgs) |> ignore
+            http.ReceivedWithAnyArgs().PostAsync (Arg.Any<string>(), toJson msgs, System.Threading.CancellationToken.None) |> ignore
         }
 
     [<Fact>]
@@ -447,7 +447,7 @@ module MicrobrokerProxyTests =
 
             let! r = proxy.PostAsync ("queue", msg)
 
-            http.ReceivedWithAnyArgs().PostAsync (Arg.Any<string>()) (toJson [| msg |])
+            http.ReceivedWithAnyArgs().PostAsync (Arg.Any<string>(), toJson [| msg |], System.Threading.CancellationToken.None)
             |> ignore
         }
 
