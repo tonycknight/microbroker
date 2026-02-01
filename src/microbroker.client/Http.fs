@@ -11,8 +11,9 @@ open Newtonsoft.Json.Linq
 type internal HttpResponseHeaders = (string * string) list
 
 [<CLIMutable>]
-type internal HttpResponseErrors = 
+type internal HttpResponseErrors =
     { errors: string[] }
+
     static member empty = { errors = [||] }
 
 type internal HttpRequestResponse =
@@ -23,7 +24,11 @@ type internal HttpRequestResponse =
         headers: HttpResponseHeaders
     | HttpTooManyRequestsResponse of headers: HttpResponseHeaders
     | HttpBadGatewayResponse of headers: HttpResponseHeaders
-    | HttpErrorRequestResponse of status: HttpStatusCode * body: string * headers: HttpResponseHeaders * errors: HttpResponseErrors
+    | HttpErrorRequestResponse of
+        status: HttpStatusCode *
+        body: string *
+        headers: HttpResponseHeaders *
+        errors: HttpResponseErrors
     | HttpExceptionRequestResponse of ex: Exception
 
     static member status(response: HttpRequestResponse) =
@@ -58,11 +63,16 @@ module internal Http =
     let errors body =
         match body with
         | "" -> HttpResponseErrors.empty
-        | json ->  
+        | json ->
             let jq = JObject.Parse json
-            let msgs = jq.SelectTokens("errors").Values() |> Seq.map (fun t -> t.ToString()) |> Array.ofSeq
 
-            { HttpResponseErrors.empty with errors = msgs }
+            let msgs =
+                jq.SelectTokens("errors").Values()
+                |> Seq.map (fun t -> t.ToString())
+                |> Array.ofSeq
+
+            { HttpResponseErrors.empty with
+                errors = msgs }
 
     let contentHeaders (resp: HttpResponseMessage) =
         resp.Content.Headers
@@ -95,10 +105,10 @@ module internal Http =
             }
         | false, HttpStatusCode.TooManyRequests -> HttpTooManyRequestsResponse(respHeaders) |> Tasks.toTaskResult
         | false, HttpStatusCode.BadGateway -> HttpBadGatewayResponse(respHeaders) |> Tasks.toTaskResult
-        | false, HttpStatusCode.BadRequest -> 
+        | false, HttpStatusCode.BadRequest ->
             task {
                 let! body = body resp
-                
+
                 return HttpErrorRequestResponse(resp.StatusCode, body, respHeaders, errors body)
             }
         | false, _ ->

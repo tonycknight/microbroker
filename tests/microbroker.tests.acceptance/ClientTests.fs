@@ -122,7 +122,7 @@ module ClientTests =
                     return false
 
                 with :? InvalidOperationException as e ->
-                    return true                    
+                    return true
             }
 
         Prop.forAll Arbitraries.invalidQueueNames property

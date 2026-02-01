@@ -36,17 +36,17 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
                     MicrobrokerMessages.fromString body
                 | HttpOkRequestResponse(status, _, _, _) -> None
                 | HttpErrorRequestResponse(status, body, _, _) when status = HttpStatusCode.NotFound -> None
-                | HttpErrorRequestResponse(status, body, _, errors) ->                    
-                    let msg = 
+                | HttpErrorRequestResponse(status, body, _, errors) ->
+                    let msg =
                         match errors.errors |> Strings.join System.Environment.NewLine with
                         | "" -> $"{status} received from server: {body}"
                         | xs -> xs
-                    
+
                     raise (System.InvalidOperationException(msg))
-                    
+
                 | HttpExceptionRequestResponse ex -> raise ex
                 | HttpBadGatewayResponse _ -> None
-                | HttpTooManyRequestsResponse _ -> None                
+                | HttpTooManyRequestsResponse _ -> None
         }
 
 
