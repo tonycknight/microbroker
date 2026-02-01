@@ -36,7 +36,7 @@ module Arbitraries =
             && (s.Contains('#') |> not)
             && (s.Contains('?') |> not)
             && (s.Contains('/') |> not)
-            && s <> "."
+            && (s.Contains("\\") |> not)
             && s |> Seq.forall (Char.IsControl >> not)
 
         ArbMap.defaults

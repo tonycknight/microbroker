@@ -26,6 +26,12 @@ module internal TestUtils =
     let badRequest json =
         HttpErrorRequestResponse(HttpStatusCode.BadRequest, json, [], HttpResponseErrors.empty)
 
+    let exceptionResponse ex = HttpExceptionRequestResponse ex
+
+    let badGatewayResponse () = HttpBadGatewayResponse []
+
+    let tooManyRequestsResponse () = HttpTooManyRequestsResponse []
+
     let httpClient (response: HttpRequestResponse) =
         let http = Substitute.For<IHttpClient>()
 
