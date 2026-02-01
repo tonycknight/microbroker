@@ -23,6 +23,9 @@ module QueueInfoGenerators =
         Newtonsoft.Json.JsonConvert.DeserializeObject<QueueInfo[]>(json)
 
 module Arbitraries =
+    let containsAny (chars: char[]) (value: string) =
+        value |> Seq.exists (fun c -> chars |> Seq.contains c)
+
     let isAlphaNumeric (value: string) =
         value |> Seq.forall (Char.IsLetter ||>> Char.IsNumber)
 
@@ -31,12 +34,13 @@ module Arbitraries =
     let isValidString = isNotNullOrEmpty &&>> isAlphaNumeric
 
     let invalidQueueNames =
+        let invalidChars = [| '#'; '?'; '/'; '\\' |]
+
         let filter (s: string) =
             s.Length > 0
-            && (s.Contains('#') |> not)
-            && (s.Contains('?') |> not)
-            && (s.Contains('/') |> not)
             && s <> "."
+            && s |> containsAny invalidChars |> not
+            && s |> Seq.forall (Char.IsControl >> not)
 
         ArbMap.defaults
         |> ArbMap.arbitrary<string>

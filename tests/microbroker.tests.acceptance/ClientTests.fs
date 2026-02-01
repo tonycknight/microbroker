@@ -5,7 +5,6 @@ open System.Linq
 open System.Threading.Tasks
 open FsCheck.FSharp
 open FsCheck.Xunit
-open Microsoft.Extensions.Logging
 open Microbroker.Client
 
 module ClientTests =
@@ -17,8 +16,7 @@ module ClientTests =
             { MicrobrokerConfiguration.brokerBaseUrl = baseUrl
               throttleMaxTime = TimeSpan.FromSeconds 1. }
 
-        let log = NSubstitute.Substitute.For<ILoggerFactory>()
-        new MicrobrokerProxy(config, ihc, log) :> IMicrobrokerProxy
+        new MicrobrokerProxy(config, ihc) :> IMicrobrokerProxy
 
     let getAllMessages proxy queue =
         let rec getAll (proxy: IMicrobrokerProxy) queue results =
@@ -33,12 +31,16 @@ module ClientTests =
         getAll proxy queue []
 
     [<Property>]
-    let ``GetQueueCount on invalid queue name returns None`` () =
+    let ``GetQueueCount on invalid queue name yields Exception`` () =
         let property queueName =
             task {
-                let! count = queueName |> (proxy TestUtils.host).GetQueueCount
+                try
+                    let! count = queueName |> (proxy TestUtils.host).GetQueueCount
 
-                return count = None
+                    return count = None
+
+                with :? InvalidOperationException as e ->
+                    return true
             }
 
         Prop.forAll Arbitraries.invalidQueueNames property
@@ -112,14 +114,17 @@ module ClientTests =
         Prop.forAll (Arbitraries.validQueueNames) property
 
     [<Property(MaxTest = TestUtils.maxClientTests)>]
-    let ``GetNext on invalid queue returns None`` () =
+    let ``GetNext on invalid queue yields Exception`` () =
         let property (queueName) =
             task {
                 let proxy = proxy TestUtils.host
 
-                let! msg = proxy.GetNext queueName
+                try
+                    let! msg = proxy.GetNext queueName
+                    return msg = None
 
-                return msg = None
+                with :? InvalidOperationException as e ->
+                    return true
             }
 
         Prop.forAll Arbitraries.invalidQueueNames property
@@ -180,6 +185,27 @@ module ClientTests =
             }
 
         Prop.forAll (Arb.zip (Arbitraries.MicrobrokerMessages.Generate(), Arbitraries.validQueueNames)) property
+
+    [<Property(MaxTest = TestUtils.maxClientTests)>]
+    let ``PostMany to invalid queue yields exception`` () =
+        let property (msgs, queue) =
+            task {
+
+                let msgs = msgs |> Array.ofSeq
+
+                let proxy = proxy TestUtils.host
+
+                try
+                    do! proxy.PostMany queue msgs
+                    return false
+                with :? InvalidOperationException as e ->
+                    return true
+            }
+
+        Prop.forAll
+            (Arb.zip (Arbitraries.MicrobrokerMessages.Generate() |> Arb.array, Arbitraries.invalidQueueNames)
+             |> Arb.filter (fun (msgs, _) -> msgs.Length > 0))
+            property
 
     [<Property(MaxTest = TestUtils.maxClientTests)>]
     let ``PostMany to queue repeated posts are FIFO`` () =

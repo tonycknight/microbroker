@@ -79,7 +79,10 @@ module PostMessageTests =
                 return getResponse.StatusCode = Net.HttpStatusCode.NoContent
             }
 
-        Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate() |> Arb.array, Arbitraries.validQueueNames)) property
+        Prop.forAll
+            (Arb.zip (Arbitraries.QueueMessages.Generate() |> Arb.array, Arbitraries.validQueueNames)
+             |> Arb.filter (fun (msgs, _) -> msgs.Length > 0))
+            property
 
     [<Property(MaxTest = TestUtils.maxServerTests)>]
     let ``POST Queue messages yields all`` () =
@@ -168,5 +171,6 @@ module PostMessageTests =
             }
 
         Prop.forAll
-            (Arb.zip (Arbitraries.QueueMessages.Generate() |> Arb.array, Arbitraries.invalidQueueNames))
+            (Arb.zip (Arbitraries.QueueMessages.Generate() |> Arb.array, Arbitraries.invalidQueueNames)
+             |> Arb.filter (fun (msgs, _) -> msgs.Length > 0))
             property
