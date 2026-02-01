@@ -17,7 +17,6 @@ type MicrobrokerCount =
 type IMicrobrokerProxy =
     abstract member Post: string -> MicrobrokerMessage -> Task<unit>
     abstract member PostMany: string -> seq<MicrobrokerMessage> -> Task<unit>
-    // TODO: need TryGetNext
     abstract member GetNext: string -> Task<MicrobrokerMessage option>
     abstract member GetQueueCounts: string[] -> Task<MicrobrokerCount[]>
     abstract member GetQueueCount: string -> Task<MicrobrokerCount option>
