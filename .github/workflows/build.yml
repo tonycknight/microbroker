@@ -115,7 +115,7 @@ jobs:
           path: ./publish/codecoverage/*.*
                     
       - name: Report Unit test results
-        uses: dorny/test-reporter@v2
+        uses: dorny/test-reporter@v3
         if: always()
         with:
           name: Unit test results
@@ -180,7 +180,7 @@ jobs:
           docker stop ${{ env.docker-container }}
 
       - name: Report Acceptance test results
-        uses: dorny/test-reporter@v2
+        uses: dorny/test-reporter@v3
         if: always()
         with:
           name: Acceptance test results
