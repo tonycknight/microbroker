@@ -24,6 +24,8 @@
     <PackageReference Include="Giraffe" Version="8.2.0" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.7" />
     <PackageReference Include="MongoDB.Driver" Version="3.8.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />    
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="SharpCompress" Version="0.48.0" />
+    <PackageReference Include="Snappier" Version="1.3.1" />    
   </ItemGroup>  
 </Project>
