@@ -1,6 +1,5 @@
 ﻿namespace microbroker.tests.performance
 
-open System
 open CommandLine
 open microbroker
 open NBomber
@@ -17,12 +16,12 @@ module Program =
         Scenario.withLoadSimulations [ Inject(rate = rate, interval = seconds 1, during = seconds duration) ]
 
     let genText =
-        let rng = new Random()
+        let rng = new System.Random()
 
         fun () ->
             let size = rng.Next(100, 4000)
             let chars = Array.init size (fun _ -> char (rng.Next(32, 126)))
-            String(chars)
+            System.String(chars)
 
     let getQueues httpClient queuesUrl context =
         task {
@@ -36,7 +35,7 @@ module Program =
 
     let pushMessage httpClient messageUrl context =
         task {
-            let now = DateTimeOffset.UtcNow
+            let now = System.DateTimeOffset.UtcNow
 
             let msg =
                 { QueueMessage.content = genText ()
@@ -54,7 +53,7 @@ module Program =
 
     let pushFutureMessage httpClient messageUrl context =
         task {
-            let now = DateTimeOffset.UtcNow
+            let now = System.DateTimeOffset.UtcNow
 
             let msg =
                 { QueueMessage.content = genText ()
