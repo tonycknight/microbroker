@@ -50,9 +50,12 @@ module WebApi =
 
     let private getTtl (ctx: HttpContext) =
         let defaultValue = 5
-        ctx.TryGetQueryStringValue "ttl" 
-        |> Option.map System.Int32.TryParse 
-        |> Option.map (function | true, i -> i | _ -> defaultValue)
+
+        ctx.TryGetQueryStringValue "ttl"
+        |> Option.map System.Int32.TryParse
+        |> Option.map (function
+            | true, i -> i
+            | _ -> defaultValue)
         |> Option.defaultValue defaultValue
 
     let getQueues =
@@ -84,7 +87,7 @@ module WebApi =
                 | Choice1Of2 error -> return! RequestErrors.BAD_REQUEST error next ctx
                 | Choice2Of2 queueId ->
                     let ttl = ctx |> getTtl |> float |> TimeSpan.FromSeconds
-                        
+
                     let! q = queueProvider ctx |> queue queueId
 
                     match! q.GetNextAsync ttl with
