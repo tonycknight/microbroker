@@ -75,7 +75,7 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
     let log = logFactory.CreateLogger<MongoQueue>()
 
     let pullTimeout (timeout: TimeSpan) =
-        let max = TimeSpan.FromSeconds 5L
+        let max = TimeSpan.FromSeconds 30L
         let min = TimeSpan.Zero
 
         if timeout > max then max
