@@ -76,8 +76,11 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
 
     let pullTimeout (timeout: TimeSpan) =
         let max = TimeSpan.FromSeconds 5L
+        let min = TimeSpan.Zero
 
-        if timeout > max then max else timeout
+        if timeout > max then max 
+        else if timeout < min then min
+        else timeout
 
     let setExpiry (msg: QueueMessage) =
         if msg.expiry = DateTimeOffset.MinValue then
