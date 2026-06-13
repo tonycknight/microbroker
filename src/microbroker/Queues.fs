@@ -75,9 +75,12 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
     let log = logFactory.CreateLogger<MongoQueue>()
 
     let pullTimeout (timeout: TimeSpan) =
-        let max = TimeSpan.FromSeconds 5L
+        let max = TimeSpan.FromSeconds 30L
+        let min = TimeSpan.Zero
 
-        if timeout > max then max else timeout
+        if timeout > max then max
+        else if timeout < min then min
+        else timeout
 
     let setExpiry (msg: QueueMessage) =
         if msg.expiry = DateTimeOffset.MinValue then
@@ -156,7 +159,7 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
             }
 
         member this.GetNextAsync(timeout: TimeSpan) =
-            let exp = timeout |> pullTimeout |> DateTime.UtcNow.Add
+            let timeout = timeout |> pullTimeout |> DateTime.UtcNow.Add
 
             let rec getNext () =
                 task {
@@ -164,10 +167,10 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
 
                     return!
                         match data with
-                        | None -> task { return None }
                         | Some d when (isExpired d |> not) -> task { return QueueMessageData.toQueueMessage d |> Some }
-                        | Some d when (DateTime.UtcNow >= exp) -> task { return None }
-                        | Some d -> getNext ()
+                        | Some d when (DateTime.UtcNow >= timeout) -> task { return None }
+                        | None when (DateTime.UtcNow >= timeout) -> task { return None }
+                        | _ -> getNext ()
                 }
 
             getNext ()

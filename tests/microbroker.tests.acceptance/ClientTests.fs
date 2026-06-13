@@ -19,10 +19,10 @@ module ClientTests =
 
         new MicrobrokerProxy(config, ihc) :> IMicrobrokerProxy
 
-    let getAllMessages cancellation proxy queue =
+    let getAllMessages ttl cancellation proxy queue =
         let rec getAll (proxy: IMicrobrokerProxy) queue results =
             task {
-                let! msg = proxy.GetNextAsync(queue, cancellation)
+                let! msg = proxy.GetNextAsync(queue, ttl, cancellation)
 
                 match msg with
                 | None -> return results
@@ -205,7 +205,7 @@ module ClientTests =
                 use cts = new CancellationTokenSource()
                 let proxy = proxy TestUtils.host
 
-                let! msg = proxy.GetNextAsync(queueName, cts.Token)
+                let! msg = proxy.GetNextAsync(queueName, ?ttl = None, ?cancellation = Some cts.Token)
 
                 return msg = None
             }
@@ -222,7 +222,7 @@ module ClientTests =
                 try
                     cts.Cancel()
 
-                    let! msg = proxy.GetNextAsync(queueName, cts.Token)
+                    let! msg = proxy.GetNextAsync(queueName, ?ttl = None, ?cancellation = Some cts.Token)
 
                     return msg = None
 
@@ -263,7 +263,7 @@ module ClientTests =
 
                 do! proxy.PostAsync(queueName, msg, cts.Token)
 
-                let! msg2 = proxy.GetNextAsync(queueName, cts.Token)
+                let! msg2 = proxy.GetNextAsync(queueName, ?ttl = None, ?cancellation = Some cts.Token)
 
                 let eq = dateTimeOffsetWithLimits (TimeSpan.FromSeconds 1.)
 
@@ -302,7 +302,7 @@ module ClientTests =
                 let proxy = proxy TestUtils.host
                 let expiry = TimeSpan.FromSeconds 10L
 
-                let! _ = getAllMessages CancellationToken.None proxy queue
+                let! _ = getAllMessages TimeSpan.Zero CancellationToken.None proxy queue
 
                 let msg = msg |> MicrobrokerMessages.expiry (fun () -> expiry)
 
@@ -347,7 +347,7 @@ module ClientTests =
 
                 do! proxy.PostManyAsync(queue, msgs)
 
-                let! msgs2 = getAllMessages CancellationToken.None proxy queue
+                let! msgs2 = getAllMessages TimeSpan.Zero CancellationToken.None proxy queue
                 let msgs2Content = msgs2 |> Seq.rev |> Seq.map _.content |> Array.ofSeq
                 let msgsContent = msgs |> Seq.map _.content |> Array.ofSeq
 
@@ -368,7 +368,7 @@ module ClientTests =
 
                 do! proxy.PostManyAsync(queue, msgs, cts.Token)
 
-                let! msgs2 = getAllMessages cts.Token proxy queue
+                let! msgs2 = getAllMessages TimeSpan.Zero cts.Token proxy queue
                 let msgs2Content = msgs2 |> Seq.rev |> Seq.map _.content |> Array.ofSeq
                 let msgsContent = msgs |> Seq.map _.content |> Array.ofSeq
 
@@ -392,7 +392,7 @@ module ClientTests =
                 cts.Cancel()
 
                 try
-                    let! _ = getAllMessages cts.Token proxy queue
+                    let! _ = getAllMessages TimeSpan.Zero cts.Token proxy queue
                     return false
 
                 with :? TaskCanceledException as e ->

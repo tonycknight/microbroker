@@ -21,7 +21,9 @@ type IMicrobrokerProxy =
     abstract member PostManyAsync:
         queue: string * messages: seq<MicrobrokerMessage> * ?cancellation: CancellationToken -> Task<unit>
 
-    abstract member GetNextAsync: queue: string * ?cancellation: CancellationToken -> Task<MicrobrokerMessage option>
+    abstract member GetNextAsync:
+        queue: string * ?ttl: System.TimeSpan * ?cancellation: CancellationToken -> Task<MicrobrokerMessage option>
+
     abstract member GetQueueCountsAsync: queues: string[] * ?cancellation: CancellationToken -> Task<MicrobrokerCount[]>
 
     abstract member GetQueueCountAsync:
@@ -45,9 +47,15 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
         | HttpTooManyRequestsResponse _ -> invalidOp "Server is unavailable - too many requests"
         | _ -> invalidOp $"Unrecognised response {resp}"
 
-    let getNext (cancellation: CancellationToken option) (queue: string) =
+    let getNext (ttl: System.TimeSpan option) (cancellation: CancellationToken option) (queue: string) =
         task {
             let url = $"{config.brokerBaseUrl |> Strings.trimSlash}/queues/{queue}/message/"
+
+            let url =
+                match ttl with
+                | Some ttl -> $"{url}?ttl={ttl.TotalSeconds}"
+                | None -> url
+
             let! resp = httpClient.GetAsync(url, cancellation |> Option.defaultValue CancellationToken.None)
 
             return
@@ -97,8 +105,8 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
         member this.PostManyAsync(queue, messages, ?cancellation: CancellationToken) =
             postMany cancellation queue messages
 
-        member this.GetNextAsync(queue, ?cancellation: CancellationToken) =
-            Throttling.exponentialWait config.throttleMaxTime (fun () -> getNext cancellation queue)
+        member this.GetNextAsync(queue, ?ttl: System.TimeSpan, ?cancellation: CancellationToken) =
+            Throttling.exponentialWait config.throttleMaxTime (fun () -> getNext ttl cancellation queue)
 
         member this.GetQueueCountsAsync(queues: string[], ?cancellation: CancellationToken) =
             task {
