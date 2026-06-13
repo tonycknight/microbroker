@@ -34,7 +34,7 @@ module Arbitraries =
     let isValidString = isNotNullOrEmpty &&>> isAlphaNumeric
 
     let invalidQueueNames =
-        let validator s = 
+        let validator s =
             match WebApiValidation.validateQueueName s with
             | Choice2Of2 queueId -> true
             | _ -> false
