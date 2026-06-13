@@ -49,7 +49,7 @@ module WebApi =
         }
 
     let private getTtl (ctx: HttpContext) =
-        let defaultValue = 0
+        let defaultValue = 1
 
         ctx.TryGetQueryStringValue "ttl"
         |> Option.map System.Int32.TryParse
