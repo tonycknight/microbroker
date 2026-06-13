@@ -159,7 +159,7 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
             }
 
         member this.GetNextAsync(timeout: TimeSpan) =
-            let exp = timeout |> pullTimeout |> DateTime.UtcNow.Add
+            let timeout = timeout |> pullTimeout |> DateTime.UtcNow.Add
 
             let rec getNext () =
                 task {
@@ -167,10 +167,10 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
 
                     return!
                         match data with
-                        | None -> task { return None }
                         | Some d when (isExpired d |> not) -> task { return QueueMessageData.toQueueMessage d |> Some }
-                        | Some d when (DateTime.UtcNow >= exp) -> task { return None }
-                        | Some d -> getNext ()
+                        | Some d when (DateTime.UtcNow >= timeout) -> task { return None }
+                        | None when (DateTime.UtcNow >= timeout) -> task { return None }
+                        | _ -> getNext ()
                 }
 
             getNext ()
