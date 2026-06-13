@@ -21,7 +21,9 @@ type IMicrobrokerProxy =
     abstract member PostManyAsync:
         queue: string * messages: seq<MicrobrokerMessage> * ?cancellation: CancellationToken -> Task<unit>
 
-    abstract member GetNextAsync: queue: string * ?ttl: System.TimeSpan * ?cancellation: CancellationToken -> Task<MicrobrokerMessage option>
+    abstract member GetNextAsync:
+        queue: string * ?ttl: System.TimeSpan * ?cancellation: CancellationToken -> Task<MicrobrokerMessage option>
+
     abstract member GetQueueCountsAsync: queues: string[] * ?cancellation: CancellationToken -> Task<MicrobrokerCount[]>
 
     abstract member GetQueueCountAsync:
@@ -48,9 +50,11 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
     let getNext (ttl: System.TimeSpan option) (cancellation: CancellationToken option) (queue: string) =
         task {
             let url = $"{config.brokerBaseUrl |> Strings.trimSlash}/queues/{queue}/message/"
-            let url = match ttl with
-                      | Some ttl -> $"{url}?ttl={ttl.TotalSeconds}"
-                      | None -> url
+
+            let url =
+                match ttl with
+                | Some ttl -> $"{url}?ttl={ttl.TotalSeconds}"
+                | None -> url
 
             let! resp = httpClient.GetAsync(url, cancellation |> Option.defaultValue CancellationToken.None)
 

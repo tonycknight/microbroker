@@ -13,15 +13,16 @@ module PostTtlMessageTests =
         let property (msg, queueId) =
             task {
                 let uri = $"{TestUtils.host}/queues/{queueId}/message/?ttl=5"
-                
+
                 // Poll the server for signs of the messge
                 let endTime = DateTime.UtcNow.Add(TimeSpan.FromSeconds 30L)
                 let mutable messageRetrieved = false
 
-                while DateTime.UtcNow < endTime && (not messageRetrieved) do                    
+                while DateTime.UtcNow < endTime && (not messageRetrieved) do
                     use! postResponse = TestUtils.client.GetAsync(uri)
-                                                
+
                     messageRetrieved <- postResponse.StatusCode <> Net.HttpStatusCode.NoContent
+
                     if not messageRetrieved then
                         do! System.Threading.Tasks.Task.Delay(500)
 
@@ -35,9 +36,13 @@ module PostTtlMessageTests =
         let property (msg, queueId) =
             task {
                 let uri = $"{TestUtils.host}/queues/{queueId}/message/?ttl=5"
-                
+
                 // Post a message that immediate expires
-                let msg = { msg with QueueMessage.content = $"{Guid.NewGuid().ToString()}"; expiry = DateTimeOffset.UtcNow.AddDays(-1) }
+                let msg =
+                    { msg with
+                        QueueMessage.content = $"{Guid.NewGuid().ToString()}"
+                        expiry = DateTimeOffset.UtcNow.AddDays(-1) }
+
                 let content = msg |> MessageGenerators.toJson |> TestUtils.jsonContent
 
                 use! postResponse = TestUtils.client.PostAsync(uri, content)
@@ -47,10 +52,11 @@ module PostTtlMessageTests =
                 let endTime = DateTime.UtcNow.Add(TimeSpan.FromSeconds 30L)
                 let mutable messageRetrieved = false
 
-                while DateTime.UtcNow < endTime && (not messageRetrieved) do                    
+                while DateTime.UtcNow < endTime && (not messageRetrieved) do
                     use! postResponse = TestUtils.client.GetAsync(uri)
-                                                
+
                     messageRetrieved <- postResponse.StatusCode <> Net.HttpStatusCode.NoContent
+
                     if not messageRetrieved then
                         do! System.Threading.Tasks.Task.Delay(500)
 
@@ -58,5 +64,3 @@ module PostTtlMessageTests =
             }
 
         Prop.forAll (Arb.zip (Arbitraries.QueueMessages.Generate(), Arbitraries.validQueueNames)) property
-
-    
