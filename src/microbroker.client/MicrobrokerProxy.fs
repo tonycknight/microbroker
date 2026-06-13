@@ -45,9 +45,13 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
         | HttpTooManyRequestsResponse _ -> invalidOp "Server is unavailable - too many requests"
         | _ -> invalidOp $"Unrecognised response {resp}"
 
-    let getNext (cancellation: CancellationToken option) (queue: string) =
+    let getNext (ttl: System.TimeSpan option) (cancellation: CancellationToken option) (queue: string) =
         task {
             let url = $"{config.brokerBaseUrl |> Strings.trimSlash}/queues/{queue}/message/"
+            let url = match ttl with
+                      | Some ttl -> $"{url}?ttl={ttl.TotalSeconds}"
+                      | None -> url
+
             let! resp = httpClient.GetAsync(url, cancellation |> Option.defaultValue CancellationToken.None)
 
             return
@@ -98,7 +102,7 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
             postMany cancellation queue messages
 
         member this.GetNextAsync(queue, ?ttl: System.TimeSpan, ?cancellation: CancellationToken) =
-            Throttling.exponentialWait config.throttleMaxTime (fun () -> getNext cancellation queue)
+            Throttling.exponentialWait config.throttleMaxTime (fun () -> getNext ttl cancellation queue)
 
         member this.GetQueueCountsAsync(queues: string[], ?cancellation: CancellationToken) =
             task {

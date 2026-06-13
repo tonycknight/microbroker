@@ -306,6 +306,25 @@ module MicrobrokerProxyTests =
         }
 
     [<Fact>]
+    let ``GetNext with TTL returns message`` () =
+        task {
+            let msg =
+                { MicrobrokerMessage.content = "test"
+                  messageType = "test msg"
+                  created = DateTimeOffset.UtcNow
+                  active = DateTimeOffset.UtcNow
+                  expiry = DateTimeOffset.MaxValue }
+
+            let resp = msg |> toJson |> ok
+            let http = httpClient resp
+            let proxy = defaultProxy http
+
+            let! r = proxy.GetNextAsync("test", TimeSpan.FromSeconds 10.0)
+
+            r |> should equal (Some msg)
+        }
+
+    [<Fact>]
     let ``PostMany with empty sequence posts nothing`` () =
         task {
             let resp = ok "[]"
