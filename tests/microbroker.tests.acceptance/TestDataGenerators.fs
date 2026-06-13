@@ -34,11 +34,19 @@ module Arbitraries =
     let isValidString = isNotNullOrEmpty &&>> isAlphaNumeric
 
     let invalidQueueNames =
-        let invalidChars = [| '#'; '?'; '/'; '\\' |]
+        let validator s =
+            match WebApiValidation.validateQueueName s with
+            | Choice2Of2 queueId -> true
+            | _ -> false
+
+        let invalidChars = [| '#'; '?'; '/'; '\\'; '%' |]
+        let encode (s: string) = System.Web.HttpUtility.UrlEncode(s)
 
         let filter (s: string) =
             s.Length > 0
+            && (s |> encode |> validator |> not)
             && s <> "."
+            && s |> encode |> containsAny invalidChars |> not
             && s |> containsAny invalidChars |> not
             && s |> Seq.forall (Char.IsControl >> not)
 
