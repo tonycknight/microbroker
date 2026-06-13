@@ -236,12 +236,12 @@ jobs:
       
       - name: Set Docker image name
         run: |
-          echo "docker-image-taggede=${{ env.docker-image-name }}:v${{ needs.variables.outputs.build-version-number }}" >> $GITHUB_ENV 
-          echo "docker-image-latest=${{ env.docker-image-name }}:latest" >> $GITHUB_ENV 
+          echo "docker-image-name-tagged=${{ env.docker-image-name }}:v${{ needs.variables.outputs.build-version-number }}" >> $GITHUB_ENV 
+          echo "docker-image-name-latest=${{ env.docker-image-name }}:latest" >> $GITHUB_ENV 
           echo "Building image ${{ env.docker-image-name }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Build docker image
-        run: docker build -f Dockerfile -t ${{ env.docker-image-tagged }} -t ${{ env.docker-image-latest }} --build-arg BuildVersion=${{ needs.variables.outputs.build-version-number }} .
+        run: docker build -f Dockerfile -t ${{ env.docker-image-name-tagged }} -t ${{ env.docker-image-name-latest }} --build-arg BuildVersion=${{ needs.variables.outputs.build-version-number }} .
 
       - name: Login to GitHub Container Registry
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
