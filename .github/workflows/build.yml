@@ -46,7 +46,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Setup .NET Core SDK
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
               
       - name: pkgchk
         uses: tonycknight/pkgchk-action@v1
@@ -64,7 +64,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Setup .NET Core SDK
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
               
       - name: Run build
         run: |
@@ -80,7 +80,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Setup .NET Core SDK
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
                       
       - name: Tests
         run: |
@@ -264,7 +264,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Setup .NET Core SDK
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
 
       - name: dotnet tool restore
         run: |
