@@ -89,8 +89,7 @@ jobs:
 
       - name: Consolidate code coverage
         run: |
-          dotnet reportgenerator -reports:./TestResults/*.cobertura.xml -targetdir:./publish/codecoverage -reporttypes:Html  
-          dotnet reportgenerator -reports:./TestResults/*.cobertura.xml -targetdir:"./publish/codecoveragedata" -reporttypes:"Cobertura"
+          dotnet reportgenerator -reports:./TestResults/*.cobertura.xml -targetdir:"./publish/codecoveragesummary" -reporttypes:"MarkdownSummaryGithub"
                     
       - name: Report Unit test results
         uses: dorny/test-reporter@v3
@@ -101,6 +100,10 @@ jobs:
           reporter: dotnet-trx
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Post Code coverage summary
+        run: |
+          cat ./publish/codecoveragesummary/SummaryGithub.md >> $GITHUB_STEP_SUMMARY
+        
       - name: Code coverage summary
         uses: 5monkeys/cobertura-action@v14
         if: always()
