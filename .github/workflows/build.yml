@@ -85,34 +85,19 @@ jobs:
       - name: Tests
         run: |
           dotnet tool restore
-          dotnet test -c Debug --filter FullyQualifiedName~unit --logger "trx;LogFileName=test_results.trx" /p:CollectCoverage=true /p:CoverletOutput=./TestResults/coverage.info /p:CoverletOutputFormat=cobertura
+          dotnet test -c Debug --filter FullyQualifiedName~unit --ignore-exit-code 8 -- --coverage --coverage-output-format cobertura --report-trx
 
       - name: Consolidate code coverage
         run: |
-          dotnet reportgenerator -reports:"./tests/**/coverage.info" -targetdir:"./publish/codecoverage" -reporttypes:"Html"
-          dotnet reportgenerator -reports:"./tests/**/coverage.info" -targetdir:"./publish/codecoveragedata" -reporttypes:"Cobertura"
-
-      - name: Archive Test results
-        uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: unit-tests_results
-          path: |
-            ./tests/**/TestResults/*
-            
-      - name: Archive Code coverage
-        uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: code_coverage_report
-          path: ./publish/codecoverage/*.*
+          dotnet reportgenerator -reports:./TestResults/*.cobertura.xml -targetdir:./publish/codecoverage -reporttypes:Html  
+          dotnet reportgenerator -reports:./TestResults/*.cobertura.xml -targetdir:"./publish/codecoveragedata" -reporttypes:"Cobertura"
                     
       - name: Report Unit test results
         uses: dorny/test-reporter@v3
         if: always()
         with:
           name: Unit test results
-          path: ${{ github.workspace }}/tests/*.tests.unit/TestResults/test_results.trx
+          path: ${{ github.workspace }}/TestResults/*.trx
           reporter: dotnet-trx
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -120,7 +105,7 @@ jobs:
         uses: 5monkeys/cobertura-action@master
         if: always()
         with:
-          path: ${{ github.workspace }}/publish/codecoveragedata/Cobertura.xml
+          path: ${{ github.workspace }}/TestResults/*.cobertura.xml
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           minimum_coverage: 0
           fail_below_threshold: true
@@ -165,7 +150,7 @@ jobs:
 
       - name: Run Tests
         run: |
-          dotnet test --filter FullyQualifiedName~acceptance /p:CollectCoverage=true /p:CoverletOutput=./TestResults/coverage.info /p:CoverletOutputFormat=cobertura --logger "trx;LogFileName=test_results.trx" 
+          dotnet test --filter FullyQualifiedName~acceptance --ignore-exit-code 8 -- --coverage --coverage-output-format cobertura --report-trx
 
       - name: Stop microbroker
         if: always()
@@ -177,7 +162,7 @@ jobs:
         if: always()
         with:
           name: Acceptance test results
-          path: ${{ github.workspace }}/tests/*.tests.acceptance/TestResults/test_results.trx
+          path: ${{ github.workspace }}/TestResults/*.trx
           reporter: dotnet-trx
           token: ${{ secrets.GITHUB_TOKEN }}
 
