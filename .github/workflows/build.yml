@@ -102,7 +102,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Code coverage summary
-        uses: 5monkeys/cobertura-action@master
+        uses: 5monkeys/cobertura-action@v14
         if: always()
         with:
           path: ${{ github.workspace }}/TestResults/*.cobertura.xml
@@ -113,7 +113,7 @@ jobs:
           show_branch: true
           show_missing: true
           show_class_names: true
-          skip_covered: false
+          skip_covered: true
           link_missing_lines: true
           report_name: Code coverage summary
 
