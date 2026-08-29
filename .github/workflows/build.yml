@@ -103,23 +103,7 @@ jobs:
       - name: Post Code coverage summary
         run: |
           cat ./publish/codecoveragesummary/SummaryGithub.md >> $GITHUB_STEP_SUMMARY
-        
-      - name: Code coverage summary
-        uses: 5monkeys/cobertura-action@v14
-        if: always()
-        with:
-          path: ${{ github.workspace }}/TestResults/*.cobertura.xml
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          minimum_coverage: 0
-          fail_below_threshold: true
-          show_line: true
-          show_branch: true
-          show_missing: true
-          show_class_names: true
-          skip_covered: true
-          link_missing_lines: true
-          report_name: Code coverage summary
-
+      
   acceptance-tests:
     name: Run Acceptance tests
     runs-on: ubuntu-latest
