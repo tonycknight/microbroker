@@ -63,7 +63,8 @@ module PostMessageTests =
 
                 let expired message =
                     { message with
-                        QueueMessage.expiry = DateTimeOffset.UtcNow.AddHours -1 }
+                        QueueMessage.expiry = DateTimeOffset.UtcNow.AddHours -1
+                    }
 
                 let content =
                     messages

@@ -18,7 +18,8 @@ module PostTtaMessageTests =
                 let msg =
                     { msg with
                         QueueMessage.active = (msg.created.Add delay)
-                        content = $"{Guid.NewGuid().ToString()}" }
+                        content = $"{Guid.NewGuid().ToString()}"
+                    }
 
                 let content = msg |> MessageGenerators.toJson |> TestUtils.jsonContent
 

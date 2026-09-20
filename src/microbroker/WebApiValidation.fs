@@ -18,4 +18,8 @@ module WebApiValidation =
     let validateQueueName queueId =
         match isValidQueueName queueId with
         | true -> Choice2Of2 queueId
-        | false -> Choice1Of2 { ApiErrorResult.errors = [| $"Invalid queue name '{queueId}'" |] }
+        | false ->
+            Choice1Of2
+                {
+                    ApiErrorResult.errors = [| $"Invalid queue name '{queueId}'" |]
+                }

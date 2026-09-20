@@ -13,8 +13,10 @@ module DependencyInjectionTests =
         (new ServiceCollection() :> IServiceCollection).AddSingleton<HttpClient>(new HttpClient())
 
     let config () =
-        { MicrobrokerConfiguration.brokerBaseUrl = "aaaa"
-          throttleMaxTime = TimeSpan.FromSeconds 5. }
+        {
+            MicrobrokerConfiguration.brokerBaseUrl = "aaaa"
+            throttleMaxTime = TimeSpan.FromSeconds 5.
+        }
 
     [<Fact>]
     let ``addConfiguration injects instance`` () =
