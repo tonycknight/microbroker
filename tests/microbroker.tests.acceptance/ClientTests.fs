@@ -14,8 +14,10 @@ module ClientTests =
         let ihc = TestUtils.client |> InternalHttpClient :> IHttpClient
 
         let config =
-            { MicrobrokerConfiguration.brokerBaseUrl = baseUrl
-              throttleMaxTime = TimeSpan.FromSeconds 1. }
+            {
+                MicrobrokerConfiguration.brokerBaseUrl = baseUrl
+                throttleMaxTime = TimeSpan.FromSeconds 1.
+            }
 
         new MicrobrokerProxy(config, ihc) :> IMicrobrokerProxy
 
@@ -263,7 +265,8 @@ module ClientTests =
 
                 do! proxy.PostAsync(queueName, msg, cts.Token)
 
-                let! msg2 = proxy.GetNextAsync(queueName, ?ttl = None, ?cancellation = Some cts.Token)
+                let! msg2 =
+                    proxy.GetNextAsync(queueName, ?ttl = None, ?cancellation = Some cts.Token)
 
                 let eq = dateTimeOffsetWithLimits (TimeSpan.FromSeconds 1.)
 

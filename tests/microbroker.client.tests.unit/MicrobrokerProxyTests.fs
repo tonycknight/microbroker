@@ -27,9 +27,11 @@ module MicrobrokerProxyTests =
             let name = Guid.NewGuid().ToString()
 
             let count =
-                { MicrobrokerCount.name = name
-                  count = 1
-                  futureCount = 2 }
+                {
+                    MicrobrokerCount.name = name
+                    count = 1
+                    futureCount = 2
+                }
 
             let resp = count |> toJson |> ok
             let http = httpClient resp
@@ -45,9 +47,11 @@ module MicrobrokerProxyTests =
     let ``GetQueueCounts on no matching name returns empty`` () =
         task {
             let count =
-                { MicrobrokerCount.name = Guid.NewGuid().ToString()
-                  count = 1
-                  futureCount = 2 }
+                {
+                    MicrobrokerCount.name = Guid.NewGuid().ToString()
+                    count = 1
+                    futureCount = 2
+                }
 
             let resp = count |> toJson |> notfound
             let http = httpClient resp
@@ -64,9 +68,11 @@ module MicrobrokerProxyTests =
             let name = Guid.NewGuid().ToString()
 
             let count =
-                { MicrobrokerCount.name = name
-                  count = 1
-                  futureCount = 2 }
+                {
+                    MicrobrokerCount.name = name
+                    count = 1
+                    futureCount = 2
+                }
 
             let resp = count |> toJson |> ok
             let http = httpClient resp
@@ -86,9 +92,11 @@ module MicrobrokerProxyTests =
             let name = "Aaa".ToLower()
 
             let count =
-                { MicrobrokerCount.name = name
-                  count = 1
-                  futureCount = 2 }
+                {
+                    MicrobrokerCount.name = name
+                    count = 1
+                    futureCount = 2
+                }
 
             let resp = count |> toJson |> ok
             let http = httpClient resp
@@ -107,9 +115,11 @@ module MicrobrokerProxyTests =
             let name = "aaa"
 
             let count =
-                { MicrobrokerCount.name = "BBB"
-                  count = 1
-                  futureCount = 2 }
+                {
+                    MicrobrokerCount.name = "BBB"
+                    count = 1
+                    futureCount = 2
+                }
 
             let resp = count |> toJson |> notfound
             let http = httpClient resp
@@ -126,9 +136,11 @@ module MicrobrokerProxyTests =
             let name = "aaa"
 
             let count =
-                { MicrobrokerCount.name = "BBB"
-                  count = 1
-                  futureCount = 2 }
+                {
+                    MicrobrokerCount.name = "BBB"
+                    count = 1
+                    futureCount = 2
+                }
 
             let json = toJson count
             let errors = [| "test error" |]
@@ -290,11 +302,13 @@ module MicrobrokerProxyTests =
     let ``GetNext returns message`` () =
         task {
             let msg =
-                { MicrobrokerMessage.content = "test"
-                  messageType = "test msg"
-                  created = DateTimeOffset.UtcNow
-                  active = DateTimeOffset.UtcNow
-                  expiry = DateTimeOffset.MaxValue }
+                {
+                    MicrobrokerMessage.content = "test"
+                    messageType = "test msg"
+                    created = DateTimeOffset.UtcNow
+                    active = DateTimeOffset.UtcNow
+                    expiry = DateTimeOffset.MaxValue
+                }
 
             let resp = msg |> toJson |> ok
             let http = httpClient resp
@@ -309,11 +323,13 @@ module MicrobrokerProxyTests =
     let ``GetNext with TTL returns message`` () =
         task {
             let msg =
-                { MicrobrokerMessage.content = "test"
-                  messageType = "test msg"
-                  created = DateTimeOffset.UtcNow
-                  active = DateTimeOffset.UtcNow
-                  expiry = DateTimeOffset.MaxValue }
+                {
+                    MicrobrokerMessage.content = "test"
+                    messageType = "test msg"
+                    created = DateTimeOffset.UtcNow
+                    active = DateTimeOffset.UtcNow
+                    expiry = DateTimeOffset.MaxValue
+                }
 
             let resp = msg |> toJson |> ok
             let http = httpClient resp
@@ -346,11 +362,13 @@ module MicrobrokerProxyTests =
 
 
             let msg =
-                { MicrobrokerMessage.content = "test"
-                  messageType = "test msg"
-                  created = DateTimeOffset.UtcNow
-                  active = DateTimeOffset.UtcNow
-                  expiry = DateTimeOffset.MaxValue }
+                {
+                    MicrobrokerMessage.content = "test"
+                    messageType = "test msg"
+                    created = DateTimeOffset.UtcNow
+                    active = DateTimeOffset.UtcNow
+                    expiry = DateTimeOffset.MaxValue
+                }
 
             let resp = exceptionResponse ex
             let http = httpClientPost resp
@@ -368,11 +386,13 @@ module MicrobrokerProxyTests =
     let ``PostMany on bad request raises exceptions`` () =
         task {
             let msg =
-                { MicrobrokerMessage.content = "test"
-                  messageType = "test msg"
-                  created = DateTimeOffset.UtcNow
-                  active = DateTimeOffset.UtcNow
-                  expiry = DateTimeOffset.MaxValue }
+                {
+                    MicrobrokerMessage.content = "test"
+                    messageType = "test msg"
+                    created = DateTimeOffset.UtcNow
+                    active = DateTimeOffset.UtcNow
+                    expiry = DateTimeOffset.MaxValue
+                }
 
             let resp = badRequest ""
 
@@ -391,11 +411,13 @@ module MicrobrokerProxyTests =
     let ``PostMany on bad gateway raises exceptions`` () =
         task {
             let msg =
-                { MicrobrokerMessage.content = "test"
-                  messageType = "test msg"
-                  created = DateTimeOffset.UtcNow
-                  active = DateTimeOffset.UtcNow
-                  expiry = DateTimeOffset.MaxValue }
+                {
+                    MicrobrokerMessage.content = "test"
+                    messageType = "test msg"
+                    created = DateTimeOffset.UtcNow
+                    active = DateTimeOffset.UtcNow
+                    expiry = DateTimeOffset.MaxValue
+                }
 
             let resp = badGatewayResponse ()
 
@@ -414,11 +436,13 @@ module MicrobrokerProxyTests =
     let ``PostMany on too many request raises exceptions`` () =
         task {
             let msg =
-                { MicrobrokerMessage.content = "test"
-                  messageType = "test msg"
-                  created = DateTimeOffset.UtcNow
-                  active = DateTimeOffset.UtcNow
-                  expiry = DateTimeOffset.MaxValue }
+                {
+                    MicrobrokerMessage.content = "test"
+                    messageType = "test msg"
+                    created = DateTimeOffset.UtcNow
+                    active = DateTimeOffset.UtcNow
+                    expiry = DateTimeOffset.MaxValue
+                }
 
             let resp = tooManyRequestsResponse ()
 
@@ -441,11 +465,15 @@ module MicrobrokerProxyTests =
             let proxy = defaultProxy http
 
             let msgs =
-                [ { MicrobrokerMessage.content = "test"
-                    messageType = "test msg"
-                    created = DateTimeOffset.UtcNow
-                    active = DateTimeOffset.UtcNow
-                    expiry = DateTimeOffset.MaxValue } ]
+                [
+                    {
+                        MicrobrokerMessage.content = "test"
+                        messageType = "test msg"
+                        created = DateTimeOffset.UtcNow
+                        active = DateTimeOffset.UtcNow
+                        expiry = DateTimeOffset.MaxValue
+                    }
+                ]
 
             let! r = proxy.PostManyAsync("queue", msgs)
 
@@ -463,11 +491,13 @@ module MicrobrokerProxyTests =
             let proxy = defaultProxy http
 
             let msg =
-                { MicrobrokerMessage.content = "test"
-                  messageType = "test msg"
-                  created = DateTimeOffset.UtcNow
-                  active = DateTimeOffset.UtcNow
-                  expiry = DateTimeOffset.MaxValue }
+                {
+                    MicrobrokerMessage.content = "test"
+                    messageType = "test msg"
+                    created = DateTimeOffset.UtcNow
+                    active = DateTimeOffset.UtcNow
+                    expiry = DateTimeOffset.MaxValue
+                }
 
             let! r = proxy.PostAsync("queue", msg)
 
@@ -485,11 +515,13 @@ module MicrobrokerProxyTests =
             let proxy = defaultProxy http
 
             let msg =
-                { MicrobrokerMessage.content = "test"
-                  messageType = "test msg"
-                  created = DateTimeOffset.UtcNow
-                  active = DateTimeOffset.UtcNow
-                  expiry = DateTimeOffset.MaxValue }
+                {
+                    MicrobrokerMessage.content = "test"
+                    messageType = "test msg"
+                    created = DateTimeOffset.UtcNow
+                    active = DateTimeOffset.UtcNow
+                    expiry = DateTimeOffset.MaxValue
+                }
 
             try
                 let! r = proxy.PostAsync("queue", msg)
@@ -507,11 +539,13 @@ module MicrobrokerProxyTests =
             let proxy = defaultProxy http
 
             let msg =
-                { MicrobrokerMessage.content = "test"
-                  messageType = "test msg"
-                  created = DateTimeOffset.UtcNow
-                  active = DateTimeOffset.UtcNow
-                  expiry = DateTimeOffset.MaxValue }
+                {
+                    MicrobrokerMessage.content = "test"
+                    messageType = "test msg"
+                    created = DateTimeOffset.UtcNow
+                    active = DateTimeOffset.UtcNow
+                    expiry = DateTimeOffset.MaxValue
+                }
 
             try
                 let! r = proxy.PostAsync("queue", msg)
@@ -529,11 +563,13 @@ module MicrobrokerProxyTests =
             let proxy = defaultProxy http
 
             let msg =
-                { MicrobrokerMessage.content = "test"
-                  messageType = "test msg"
-                  created = DateTimeOffset.UtcNow
-                  active = DateTimeOffset.UtcNow
-                  expiry = DateTimeOffset.MaxValue }
+                {
+                    MicrobrokerMessage.content = "test"
+                    messageType = "test msg"
+                    created = DateTimeOffset.UtcNow
+                    active = DateTimeOffset.UtcNow
+                    expiry = DateTimeOffset.MaxValue
+                }
 
             try
                 let! r = proxy.PostAsync("queue", msg)

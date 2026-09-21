@@ -38,11 +38,13 @@ module Program =
             let now = System.DateTimeOffset.UtcNow
 
             let msg =
-                { QueueMessage.content = genText ()
-                  messageType = "text/plain"
-                  active = now
-                  created = now
-                  expiry = now.AddMinutes(2.0) }
+                {
+                    QueueMessage.content = genText ()
+                    messageType = "text/plain"
+                    active = now
+                    created = now
+                    expiry = now.AddMinutes(2.0)
+                }
 
             let request = Http.createRequest "POST" messageUrl |> Http.withJsonBody msg
 
@@ -56,11 +58,13 @@ module Program =
             let now = System.DateTimeOffset.UtcNow
 
             let msg =
-                { QueueMessage.content = genText ()
-                  messageType = "text/plain"
-                  active = now.AddSeconds(15.0)
-                  created = now
-                  expiry = now.AddMinutes(2.0) }
+                {
+                    QueueMessage.content = genText ()
+                    messageType = "text/plain"
+                    active = now.AddSeconds(15.0)
+                    created = now
+                    expiry = now.AddMinutes(2.0)
+                }
 
             let request = Http.createRequest "POST" messageUrl |> Http.withJsonBody msg
 
@@ -92,21 +96,23 @@ module Program =
 
         let result =
             NBomberRunner.registerScenarios
-                [ Scenario.create ("push message", pushMessage httpClient messageUrl)
-                  |> setWarmup warmup
-                  |> setSimulation options.rate options.duration
+                [
+                    Scenario.create ("push message", pushMessage httpClient messageUrl)
+                    |> setWarmup warmup
+                    |> setSimulation options.rate options.duration
 
-                  Scenario.create ("push future message", pushFutureMessage httpClient messageUrl)
-                  |> setWarmup warmup
-                  |> setSimulation options.rate options.duration
+                    Scenario.create ("push future message", pushFutureMessage httpClient messageUrl)
+                    |> setWarmup warmup
+                    |> setSimulation options.rate options.duration
 
-                  Scenario.create ("pull message", pullMessage httpClient messageUrl)
-                  |> setWarmup warmup
-                  |> setSimulation options.rate options.duration
+                    Scenario.create ("pull message", pullMessage httpClient messageUrl)
+                    |> setWarmup warmup
+                    |> setSimulation options.rate options.duration
 
-                  Scenario.create ("get queues", getQueues httpClient queuesUrl)
-                  |> setWarmup warmup
-                  |> setSimulation options.rate options.duration ]
+                    Scenario.create ("get queues", getQueues httpClient queuesUrl)
+                    |> setWarmup warmup
+                    |> setSimulation options.rate options.duration
+                ]
             |> NBomberRunner.withTestName "basic push/pull performance tests"
             |> NBomberRunner.withTestSuite "microbroker performance tests"
             |> NBomberRunner.run

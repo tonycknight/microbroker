@@ -5,14 +5,18 @@ open System.Threading
 open System.Threading.Tasks
 
 type MicrobrokerCount =
-    { name: string
-      count: int64
-      futureCount: int64 }
+    {
+        name: string
+        count: int64
+        futureCount: int64
+    }
 
     static member empty(name: string) =
-        { MicrobrokerCount.name = name
-          count = 0
-          futureCount = 0 }
+        {
+            MicrobrokerCount.name = name
+            count = 0
+            futureCount = 0
+        }
 
 type IMicrobrokerProxy =
     abstract member PostAsync:
@@ -56,7 +60,8 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
                 | Some ttl -> $"{url}?ttl={ttl.TotalSeconds}"
                 | None -> url
 
-            let! resp = httpClient.GetAsync(url, cancellation |> Option.defaultValue CancellationToken.None)
+            let! resp =
+                httpClient.GetAsync(url, cancellation |> Option.defaultValue CancellationToken.None)
 
             return
                 match resp with
@@ -89,7 +94,9 @@ type internal MicrobrokerProxy(config: MicrobrokerConfiguration, httpClient: IHt
     let queueCount (cancellation: CancellationToken option) queue =
         task {
             let url = $"{Strings.trimSlash config.brokerBaseUrl}/queues/{queue}/"
-            let! resp = httpClient.GetAsync(url, cancellation |> Option.defaultValue CancellationToken.None)
+
+            let! resp =
+                httpClient.GetAsync(url, cancellation |> Option.defaultValue CancellationToken.None)
 
             return
                 match resp with

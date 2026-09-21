@@ -33,25 +33,31 @@ type IQueueMessageRelay =
 
 [<CLIMutable>]
 type QueueMessageData =
-    { _id: MongoDB.Bson.ObjectId
-      messageType: string
-      content: string
-      created: DateTimeOffset
-      active: DateTimeOffset
-      expiry: DateTimeOffset }
+    {
+        _id: MongoDB.Bson.ObjectId
+        messageType: string
+        content: string
+        created: DateTimeOffset
+        active: DateTimeOffset
+        expiry: DateTimeOffset
+    }
 
     static member toQueueMessage(data: QueueMessageData) =
-        { QueueMessage.messageType = data.messageType
-          content = data.content
-          created = data.created
-          active = data.active
-          expiry = data.expiry }
+        {
+            QueueMessage.messageType = data.messageType
+            content = data.content
+            created = data.created
+            active = data.active
+            expiry = data.expiry
+        }
 
 [<CLIMutable>]
 type LinkedQueue =
-    { _id: obj
-      originQueueName: string
-      destinationQueueName: string }
+    {
+        _id: obj
+        originQueueName: string
+        destinationQueueName: string
+    }
 
 module MongoQueues =
     [<Literal>]
@@ -85,7 +91,8 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
     let setExpiry (msg: QueueMessage) =
         if msg.expiry = DateTimeOffset.MinValue then
             { msg with
-                expiry = DateTimeOffset.MaxValue }
+                expiry = DateTimeOffset.MaxValue
+            }
         else
             msg
 
@@ -110,7 +117,8 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
                     batch
                     |> Seq.map (fun m ->
                         { m with
-                            _id = new MongoDB.Bson.ObjectId(Guid.NewGuid().ToString().Replace("-", "")) })
+                            _id = new MongoDB.Bson.ObjectId(Guid.NewGuid().ToString().Replace("-", ""))
+                        })
                     |> Mongo.pushToQueue activeQueueMongoCol
 
                 let ids = batch |> Seq.map (fun m -> $"ObjectId('{m._id}')") |> Strings.join ", "
@@ -153,9 +161,11 @@ type MongoQueue(config: AppConfiguration, logFactory: ILoggerFactory, relay: IQu
                 let! ttaCount = Mongo.estimatedCount ttaQueueMongoCol
 
                 return
-                    { QueueInfo.name = name
-                      count = activeCount
-                      futureCount = ttaCount }
+                    {
+                        QueueInfo.name = name
+                        count = activeCount
+                        futureCount = ttaCount
+                    }
             }
 
         member this.GetNextAsync(timeout: TimeSpan) =
@@ -260,9 +270,11 @@ type MongoLinkedQueueProvider(config: AppConfiguration, logFactory: ILoggerFacto
         task {
 
             let x =
-                { LinkedQueue._id = (id origin destination)
-                  originQueueName = origin
-                  destinationQueueName = destination }
+                {
+                    LinkedQueue._id = (id origin destination)
+                    originQueueName = origin
+                    destinationQueueName = destination
+                }
 
             let! r = x |> MongoBson.ofObject |> Mongo.upsert col
 

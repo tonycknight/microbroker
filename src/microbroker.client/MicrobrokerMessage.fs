@@ -4,11 +4,13 @@ open System
 
 [<CLIMutable>]
 type MicrobrokerMessage =
-    { messageType: string
-      content: string
-      created: DateTimeOffset
-      active: DateTimeOffset
-      expiry: DateTimeOffset }
+    {
+        messageType: string
+        content: string
+        created: DateTimeOffset
+        active: DateTimeOffset
+        expiry: DateTimeOffset
+    }
 
 module MicrobrokerMessages =
     let internal fromString (value: string) =
@@ -23,11 +25,13 @@ module MicrobrokerMessages =
     let create () =
         let now = Time.now ()
 
-        { MicrobrokerMessage.created = now
-          content = ""
-          messageType = ""
-          active = DateTimeOffset.MinValue
-          expiry = DateTimeOffset.MaxValue }
+        {
+            MicrobrokerMessage.created = now
+            content = ""
+            messageType = ""
+            active = DateTimeOffset.MinValue
+            expiry = DateTimeOffset.MaxValue
+        }
 
     let active (active: unit -> DateTimeOffset) (message: MicrobrokerMessage) = { message with active = active () }
 
@@ -37,7 +41,8 @@ module MicrobrokerMessages =
 
     let messageType messageType (message: MicrobrokerMessage) =
         { message with
-            messageType = messageType }
+            messageType = messageType
+        }
 
     let content content (message: MicrobrokerMessage) = { message with content = content }
 

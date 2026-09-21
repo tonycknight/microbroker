@@ -11,8 +11,10 @@ module internal TestUtils =
         Newtonsoft.Json.JsonConvert.SerializeObject values
 
     let testConfig =
-        { MicrobrokerConfiguration.brokerBaseUrl = "a"
-          throttleMaxTime = TimeSpan.FromSeconds(1.) }
+        {
+            MicrobrokerConfiguration.brokerBaseUrl = "a"
+            throttleMaxTime = TimeSpan.FromSeconds(1.)
+        }
 
     let ok json =
         HttpOkRequestResponse(HttpStatusCode.OK, json, None, [])
@@ -29,7 +31,8 @@ module internal TestUtils =
             json,
             [],
             { HttpResponseErrors.empty with
-                errors = errors }
+                errors = errors
+            }
         )
 
     let exceptionResponse ex = HttpExceptionRequestResponse ex

@@ -107,7 +107,8 @@ module WebApi =
 
                     let msg =
                         { msg with
-                            created = DateTimeOffset.UtcNow }
+                            created = DateTimeOffset.UtcNow
+                        }
 
                     do! pushManyToQueues [ q ] [ msg ]
 
@@ -127,7 +128,8 @@ module WebApi =
                         msgs
                         |> Seq.map (fun m ->
                             { m with
-                                created = DateTimeOffset.UtcNow })
+                                created = DateTimeOffset.UtcNow
+                            })
                         |> List.ofSeq
 
                     do! pushManyToQueues [ q ] msgs

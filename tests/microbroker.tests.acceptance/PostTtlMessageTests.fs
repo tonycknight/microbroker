@@ -41,7 +41,8 @@ module PostTtlMessageTests =
                 let msg =
                     { msg with
                         QueueMessage.content = $"{Guid.NewGuid().ToString()}"
-                        expiry = DateTimeOffset.UtcNow.AddDays(-1) }
+                        expiry = DateTimeOffset.UtcNow.AddDays(-1)
+                    }
 
                 let content = msg |> MessageGenerators.toJson |> TestUtils.jsonContent
 
